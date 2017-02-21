@@ -1,0 +1,32 @@
+<div class="Header" id="header">
+  <div class="u-inner Header-inner">
+    <div class="Header-navigation">
+      <ul class="Header-navigationList">
+          <li class="smaller strong tab button">
+            <a href="<%= CartoDB.url(self, 'root') %>" class="Header-navigationLink">Save a Copy to Make Changes</a>
+          </li>
+          <li class="smaller strong tab button">
+            <a href="<%= CartoDB.url(self, 'maps_samples') %>" class="Header-navigationLink">Back to Map Library</a>
+          </li>
+      </ul>
+    </div>
+
+    <div class="Header-settings">
+      <% if !current_user || current_user.has_feature_flag?('bbg_profile_menu') %>
+      <ul class="Header-settingsList js-user-settings">
+        <li class="Header-settingsItem js-login">
+          <a href="<%= login_url %>" class="Header-settingsLink">Login</a>
+        </li>
+
+        <% unless cartodb_com_hosted? %>
+          <li class="Header-settingsItem">
+            <a href="http://cartodb.com/signup" class="PublicButton PublicButton--sMedium PublicButton--cWhite is-hover">
+              <span>Sign up</span>
+            </a>
+          </li>
+        <% end %>
+      </ul>
+      <% end %>
+    </div>
+  </div>
+</div>

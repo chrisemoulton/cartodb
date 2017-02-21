@@ -45,7 +45,6 @@ class Admin::VisualizationsController < Admin::AdminController
                                                    :track_embed]
 
   def index
-    #byebug
     @first_time    = !current_user.dashboard_viewed?
     @just_logged_in = !!flash['logged']
     @google_maps_query_string = current_user.google_maps_query_string
@@ -58,7 +57,6 @@ class Admin::VisualizationsController < Admin::AdminController
   end
 
   def show
-    #byebug
     unless current_user.present?
       if request.original_fullpath =~ %r{/tables/}
         return(redirect_to CartoDB.url(self, 'public_table_map', {id: request.params[:id]}))
@@ -271,7 +269,7 @@ class Admin::VisualizationsController < Admin::AdminController
     @is_liked    = is_liked(@visualization)
     @likes_count = @visualization.likes.count
 
-    byebug
+    #byebug
     # We need to know if visualization logo is visible or not
     @hide_logo = is_logo_hidden(@visualization, params)
 
@@ -286,7 +284,7 @@ class Admin::VisualizationsController < Admin::AdminController
 
 
   def sample_map
-    byebug
+    #byebug
     if current_user.nil? && !request.params[:redirected].present?
       redirect_url = get_corrected_url_if_proceeds(for_table=false)
       unless redirect_url.nil?
@@ -372,11 +370,7 @@ class Admin::VisualizationsController < Admin::AdminController
 
     respond_to do |format|
       format.html { render layout: 'application_public_visualization_layout' }
-      format.html { render 'sample_map' }
-      format.js { render 'public_map', content_type: 'application/javascript' }
-      #format.html { render 'show', layout: 'application' }
-      #format.js { render 'show', content_type: 'application/javascript' }
-      #format.js { render 'public_map', content_type: 'application/javascript' }
+      format.html { render 'sample_map', content_type: 'application/javascript' }
       #format.js { render 'public_map', content_type: 'application/javascript' }
     end
   rescue => e
@@ -595,7 +589,7 @@ class Admin::VisualizationsController < Admin::AdminController
   end
 
   def resolve_visualization_and_table
-    byebug
+    #byebug
     puts "hitting it ..... vj "
     filters = { exclude_raster: true }
     @visualization, @table =
@@ -654,7 +648,7 @@ class Admin::VisualizationsController < Admin::AdminController
   end
 
   def table_and_schema_from_params
-    byebug
+    #byebug
     if params.fetch('id', nil) =~ /\./
       @table_id, @schema = params.fetch('id').split('.').reverse
     else
