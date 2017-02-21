@@ -20,7 +20,7 @@
     </div>
 
     <div class="Header-settings">
-      <% if false %>
+      <% if current_user.has_feature_flag?('bbg_profile_menu') %>
       <ul class="Header-settingsList">
         <li class="Header-settingsItem u-hideOnMobile">
           <a href="<%= maps_index_path %>" class="Header-settingsLink">Maps</a>
@@ -46,16 +46,6 @@
       </ul>
       <% end %>
 
-      <% if current_user.has_feature_flag?('bbg_profile_menu')%>
-      <ul class="Header-settingsList">
-        <li class="Header-settingsItem u-hideOnMobile">
-        Map Title
-        </li>
-        <li class="Header-settingsItem u-hideOnMobile">
-          <a href="<%= maps_index_path %>" class="Header-settingsLink">Tornado Alley</a>
-        </li>
-      </ul>
-      <% end %>
     </div>
   </div>
 </div>

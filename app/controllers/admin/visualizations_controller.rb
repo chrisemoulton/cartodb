@@ -218,7 +218,6 @@ class Admin::VisualizationsController < Admin::AdminController
       response.headers['X-Cache-Channel'] = "#{@visualization.varnish_key}:vizjson"
     end
 
-    puts "before 221 vj"
     if @more_visualizations && @more_visualizations.length > 0
       additional_keys = []
       @more_visualizations.each do |vis_adapter|
@@ -311,7 +310,6 @@ class Admin::VisualizationsController < Admin::AdminController
       response.headers['X-Cache-Channel'] = "#{@visualization.varnish_key}:vizjson"
     end
 
-    puts "before 221 vj"
     if @more_visualizations && @more_visualizations.length > 0
       additional_keys = []
       @more_visualizations.each do |vis_adapter|
@@ -364,10 +362,6 @@ class Admin::VisualizationsController < Admin::AdminController
 
     # We need to know if visualization logo is visible or not
     @hide_logo = is_logo_hidden(@visualization, params)
-    @back_url = 'http://localhost.localdomain/user/pacman/dashboard/maps/samples'
-    #@back_url = session[:return_to] + "/samples"
-    #@back_url.sub('sam', session['warden.user.pacman.key'] );
-
     respond_to do |format|
       format.html { render layout: 'application_public_visualization_layout' }
       format.html { render 'sample_map', content_type: 'application/javascript' }
