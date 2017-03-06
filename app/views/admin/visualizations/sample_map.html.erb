@@ -68,6 +68,8 @@
     var vis_name = "<%= @visualization.name %>";
     var belong_organization = <%= @visualization.user.has_organization? %>;
     var config = <%= safe_js_object frontend_config_public({https_apis: request.protocol == 'https://' }) %>;
+    var user_data =  <%= safe_js_object current_user.data({ show_api_calls: false }).to_json %>;
+    var datalib_layers = <%= safe_js_object @datalib_layers.to_json %>
     var vizdata = <%= safe_js_object @visualization.to_vizjson({https_request: request.protocol == 'https://'}).to_json %>;
 
     // fix header title and description in overlay viz JSON for cartodb.js
@@ -104,9 +106,9 @@
       'search':           bool_fn,
       'title':            bool_fn,
       'description':      bool_fn,
-      'shareable':        false,
+      'shareable':        bool_fn,
       'fullscreen':       bool_fn,
-      'cartodb_logo':     false,
+      'cartodb_logo':     bool_fn,
       'scrollwheel':      bool_fn,
       'sublayer_options': layer_fn,
       'layer_selector':   bool_fn,
@@ -143,7 +145,7 @@
 
   </script>
 
-  <%= javascript_include_tag 'cdb.js', 'templates.js', 'public_map_deps', 'public_map'  %>
+  <%= javascript_include_tag 'cdb.js', 'models.js', 'templates.js', 'public_map_deps', 'public_map'  %>
 
   <script>
 

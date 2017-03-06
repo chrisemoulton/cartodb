@@ -16,6 +16,7 @@ class Api::Json::SynchronizationsController < Api::ApplicationController
 
   # Upon creation, no rate limit checks
   def create
+    #byebug
     @stats_aggregator.timing('synchronizations.create') do
 
       begin

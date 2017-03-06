@@ -281,6 +281,24 @@ class Admin::VisualizationsController < Admin::AdminController
     embed_forbidden
   end
 
+  def get_layer_names
+    map_id = Carto::Visualization.where(id:@visualization.id).first.map_id;
+
+    map = Carto::Map.where(id: map_id).first
+    raise RecordNotFound if map.nil?
+
+    layers = []
+    map.layers.each do |layer|
+      options = layer.options
+      if options['type'] == 'CartoDB'
+        layers.append(options.symbolize_keys[:table_name])
+      end
+    end
+
+    layers.delete_if {|item| item == 'shared_empty_dataset'}
+
+    layers
+  end
 
   def sample_map
     #byebug
@@ -327,6 +345,8 @@ class Admin::VisualizationsController < Admin::AdminController
       response.headers['Cache-Control'] = "no-cache,max-age=86400,must-revalidate, public"
     end
 
+    #byebug
+
     @name = @visualization.user.name.present? ? @visualization.user.name : @visualization.user.username.truncate(20)
     @avatar_url             = @visualization.user.avatar
     @twitter_username       = @visualization.user.twitter_username.present? ? @visualization.user.twitter_username : nil
@@ -359,6 +379,9 @@ class Admin::VisualizationsController < Admin::AdminController
 
     @is_liked    = is_liked(@visualization)
     @likes_count = @visualization.likes.count
+
+    #byebug
+    @datalib_layers = get_layer_names
 
     # We need to know if visualization logo is visible or not
     @hide_logo = is_logo_hidden(@visualization, params)
