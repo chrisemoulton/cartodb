@@ -58,8 +58,7 @@ module Carto
             vqb.with_owned_by_or_shared_with_user_id(current_user.id)
           when FILTER_SHARED_NO
             if samples
-              #vqb.with_user_id('ac73a22b-9677-45f9-956d-65bb98fc2d7f')
-              vqb.with_user_id('0eda5fe3-aea7-4108-99e3-f6bbc54243d8')
+              vqb.with_user_id(Cartodb.config[:map_samples][:user_id])
             else
               vqb.with_user_id(current_user.id) if !only_liked
             end
