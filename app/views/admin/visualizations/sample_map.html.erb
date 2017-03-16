@@ -2,13 +2,11 @@
 
 <%= content_for(:description) do %><%= @visualization.description_clean ? "#{@visualization.description_clean} — Map created by #{@name} in CartoDB" : "Map created by #{@name} in CartoDB" %><% end %>
 
-<%= content_for(:twitter_card) do %><%= Carto::StaticMapsURLHelper.new.url_for_static_map(request, @visualization, 560, 300) %><% end %>
-<%= content_for(:facebook_card) do %><%= Carto::StaticMapsURLHelper.new.url_for_static_map(request, @visualization, 1200, 630) %><% end %>
 
-<%= content_for(:body_class) do %> PublicMap <% end %>
+<%= content_for(:body_class) do %>SampleMap<% end %>
 
 <%= content_for(:css) do %>
-  <%= stylesheet_link_tag 'cartodb', 'common', 'public_map' %>
+  <%= stylesheet_link_tag 'cartodb', 'common', 'public_map', 'editor' %>
 <% end %>
 
 <%= content_for(:content) do %>
@@ -17,17 +15,6 @@
 
     <div class="PublicMap-map js-map" id="map">
       <div class="Spinner Spinner--center js-spinner"></div>
-    </div>
-
-    <%# Legacy from current embed %>
-    <div class="NotSupportedDialog" id="not_supported_dialog" style="display: none">
-      <h2 class="NotSupportedDialog-title">CartoDB</h2>
-      <p class="NotSupportedDialog-desc">This visualization only works in modern browsers. Upgrade yours and enjoy.</p>
-      <ul class="NotSupportedDialog-list">
-        <li class="NotSupportedDialog-item"><a class="NotSupportedDialog-itemLink NotSupportedDialog-itemLink--Safari" href="http://www.apple.com/safari/" class="safari">Safari</a></li>
-        <li class="NotSupportedDialog-item"><a class="NotSupportedDialog-itemLink NotSupportedDialog-itemLink--Chrome" href="https://www.google.com/chrome/" class="chrome">Chrome</a></li>
-        <li class="NotSupportedDialog-item is-last"><a class="NotSupportedDialog-itemLink NotSupportedDialog-itemLink--Firefox" href="http://www.mozilla.org/en-US/firefox/all/‎" class="firefox">Firefox</a></li>
-      </ul>
     </div>
 
   <% end %>
@@ -135,6 +122,8 @@
     map_options.fullscreen    = false;
     map_options.scrollwheel   = false;
     map_options.mobile_layout = true;
+    map_options.zoomControl   = true;
+    map_options.shareable     = false;
 
     // Default to true if not provided, for some reason legends is always set to false in the
     //  vizjson presenter and I can't seem to track it down.

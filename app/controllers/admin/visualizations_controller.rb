@@ -386,7 +386,7 @@ class Admin::VisualizationsController < Admin::AdminController
     # We need to know if visualization logo is visible or not
     @hide_logo = is_logo_hidden(@visualization, params)
     respond_to do |format|
-      format.html { render layout: 'application_public_visualization_layout' }
+      format.html { render layout: 'application_sample_layout' }
       format.html { render 'sample_map', content_type: 'application/javascript' }
       #format.js { render 'public_map', content_type: 'application/javascript' }
     end
