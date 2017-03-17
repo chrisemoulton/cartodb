@@ -13,10 +13,13 @@
   <% if @visualization.is_accesible_by_user?(current_user) %>
     <%= render 'admin/shared/sample_header' %>
 
-    <div class="PublicMap-map js-map" id="map">
-      <div class="Spinner Spinner--center js-spinner"></div>
-    </div>
-
+  <div class='panes'>
+    <div class="map derived">
+      <div class="cartodb-map js-map" id="map">
+        <div class="Spinner Spinner--center js-spinner"></div>
+      </div>
+    <div>
+  </div>
   <% end %>
 <% end %>
 
@@ -131,6 +134,8 @@
     if (map_options.legends === undefined) {
       map_options.legends = true;
     }
+
+    var bSampleView = true;
 
   </script>
 

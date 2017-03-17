@@ -58,7 +58,11 @@ module Carto
             vqb.with_owned_by_or_shared_with_user_id(current_user.id)
           when FILTER_SHARED_NO
             if samples
-              vqb.with_user_id(Cartodb.config[:map_samples][:user_id])
+              if Cartodb.config[:map_samples] && Cartodb.config[:map_samples]["user_id"]
+                vqb.with_user_id(Cartodb.config[:map_samples]["user_id"]) 
+              else
+                raise "The sample user is not setup in app_config"
+              end
             else
               vqb.with_user_id(current_user.id) if !only_liked
             end
