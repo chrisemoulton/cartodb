@@ -51,7 +51,6 @@ module Carto
       end
 
       def index
-        #byebug
         page, per_page, order = page_per_page_order_params
         types, total_types = get_types_parameters
         vqb = query_builder_with_filter_from_hash(params)
