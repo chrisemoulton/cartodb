@@ -191,7 +191,6 @@ class Admin::VisualizationsController < Admin::AdminController
   end
 
   def public_map
-    #byebug
     if current_user.nil? && !request.params[:redirected].present?
       redirect_url = get_corrected_url_if_proceeds(for_table=false)
       unless redirect_url.nil?
@@ -268,7 +267,6 @@ class Admin::VisualizationsController < Admin::AdminController
     @is_liked    = is_liked(@visualization)
     @likes_count = @visualization.likes.count
 
-    #byebug
     # We need to know if visualization logo is visible or not
     @hide_logo = is_logo_hidden(@visualization, params)
 
@@ -301,7 +299,6 @@ class Admin::VisualizationsController < Admin::AdminController
   end
 
   def sample_map
-    #byebug
     if current_user.nil? && !request.params[:redirected].present?
       redirect_url = get_corrected_url_if_proceeds(for_table=false)
       unless redirect_url.nil?
@@ -345,8 +342,6 @@ class Admin::VisualizationsController < Admin::AdminController
       response.headers['Cache-Control'] = "no-cache,max-age=86400,must-revalidate, public"
     end
 
-    #byebug
-
     @name = @visualization.user.name.present? ? @visualization.user.name : @visualization.user.username.truncate(20)
     @avatar_url             = @visualization.user.avatar
     @twitter_username       = @visualization.user.twitter_username.present? ? @visualization.user.twitter_username : nil
@@ -380,7 +375,6 @@ class Admin::VisualizationsController < Admin::AdminController
     @is_liked    = is_liked(@visualization)
     @likes_count = @visualization.likes.count
 
-    #byebug
     @datalib_layers = get_layer_names
 
     # We need to know if visualization logo is visible or not
@@ -606,8 +600,6 @@ class Admin::VisualizationsController < Admin::AdminController
   end
 
   def resolve_visualization_and_table
-    #byebug
-    puts "hitting it ..... vj "
     filters = { exclude_raster: true }
     @visualization, @table =
       get_visualization_and_table(@table_id, username_from_schema || @sample_user || CartoDB.extract_subdomain(request), filters)
@@ -665,7 +657,6 @@ class Admin::VisualizationsController < Admin::AdminController
   end
 
   def table_and_schema_from_params
-    #byebug
     if params.fetch('id', nil) =~ /\./
       @table_id, @schema = params.fetch('id').split('.').reverse
     else
