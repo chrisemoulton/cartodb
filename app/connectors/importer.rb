@@ -171,8 +171,6 @@ module CartoDB
             return
           end
 
-          byebug
-
           data = JSON.parse(response.response_body)
           table.map.provider = data['provider']
           table.map.bounding_box_sw = data['bounding_box_sw']
