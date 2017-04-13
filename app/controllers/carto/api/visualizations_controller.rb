@@ -64,6 +64,7 @@ module Carto
         end
         parent_category = params.fetch('parent_category', -1)
         asc_order = params.fetch('asc_order', 'false')
+        imported = params.fetch('imported', 'false')
 
         presenter_cache = Carto::Api::PresenterCache.new
 
@@ -72,6 +73,9 @@ module Carto
           # a better approach and/or move it to the query builder
           excludedNames = [emptyDatasetName]
           query = vqb.with_order("visualizations.#{order}", asc_order == 'true' ? :asc : :desc).with_excluded_names(excludedNames)
+          if imported == 'true'
+            query = query.without_imported_datasets
+          end
           if parent_category != -1
             query = query.with_parent_category(parent_category.to_i)
           end

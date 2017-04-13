@@ -43,6 +43,7 @@ class Carto::VisualizationQueryBuilder
     @order = {}
     @off_database_order = {}
     @exclude_synced_external_sources = false
+    @exclude_imported_datasets = false
     @exclude_imported_remote_visualizations = false
     @excluded_kinds = []
   end
@@ -74,6 +75,11 @@ class Carto::VisualizationQueryBuilder
 
   def without_synced_external_sources
     @exclude_synced_external_sources = true
+    self
+  end
+
+  def without_imported_datasets
+    @exclude_imported_datasets = true
     self
   end
 
@@ -275,6 +281,15 @@ class Carto::VisualizationQueryBuilder
                               #{exclude_only_synchronized}
                           })
                    .where("edi.id IS NULL")
+    end
+
+    if @exclude_imported_datasets
+      query = query.joins(%{
+                            LEFT JOIN visualizations mapsdataviz
+                              ON mapsdataviz.user_id=(SELECT id FROM users WHERE username='#{Cartodb.config[:common_data]['username']}')
+                                AND visualizations.type='table' AND mapsdataviz.type='remote' AND mapsdataviz.name = visualizations.name
+                          })
+                   .where("mapsdataviz.id IS NULL")
     end
 
     if @exclude_imported_remote_visualizations
