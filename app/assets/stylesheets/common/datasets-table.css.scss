@@ -24,22 +24,22 @@ $bannedColor: #E1A7A5;
   width: 100%;
 }
 .DatasetsTable th,td,
-.DatasetsTable-item td
+.DatasetsTable-item th,td
 {
   text-align: left;  
   border-right: 1px solid $Black;
   line-height: 27px;
-  padding: 0px 6px;
+  padding: 0px 6px !important;
 
   .DatasetTitle-link {
     border-bottom: 1px $Grey2 dotted;
   }
 }
 
-.DatasetsTable th
+.DatasetsTable th,td
 {
-  &:nth-child(1) { width: 24px; }
-  &:nth-child(2) { width: 32px; }
+  &:nth-child(1) { width: 26px; }
+  &:nth-child(2) { width: 34px; }
   &:nth-child(3) { width: 30%; }
   &:nth-child(5) { width: 120px; }
   &:nth-child(6) { width: 24px; }
@@ -278,6 +278,11 @@ $bannedColor: #E1A7A5;
 
 .DatasetInfoTooltip {
   text-align: left;
+}
+
+.DatasetsTableScrollable {
+  height:calc(100% - 28px);
+  overflow-y: auto;
 }
 
 @media only screen and (max-width: $sMedia-mobile) and (max-width: 959px) {

@@ -13,6 +13,10 @@
   flex-wrap: wrap;
   position: relative;
 }
+.MapsListScrollable {
+  height: 100%;
+  overflow-y: auto;
+}
 .MapsList-footer {
   // To match the MapsList size above, with its margin+padding
   width: $sLayout-width + $sMargin-element + 2*$sMargin-elementInline;

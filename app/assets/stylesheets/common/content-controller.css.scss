@@ -8,35 +8,45 @@
 .ContentController {
   padding: 5px;
   display: flex;
-  height: 100%;
+  height: calc(100% - 40px);
+}
 
-  .RightContent {
-    display: flex;
-    flex: 1 1 auto;
-    flex-flow: column;
-    background: $Black;
-    margin-left: 5px;
-    .IntermediateInfo {
-      min-height: 180px;
-    }
-  }
+.RightContent {
+  height: 100%;
+  flex: 1 1 auto;
+  background: $Black;
+  margin-left: 5px;
 
   .ContentList {
     background-color: $DarkGrey9;
+    height: calc(100% - 25px);
     flex: 1 1 auto;
+    .ContentListContainer {
+      height: 100%;
+      &.is-hidden {
+        display: none;
+      }
+    }
     .found-sub {
       font-weight: bold;
       color: $Grey1;
     }
+    &.is-hidden {
+      display: none;
+    }
   }
 
-  .SearchBar {    
+  .SearchBar {
     .search-bar-input {
       color: black;
       width:100%;
       height:25px;
       line-height:25px;
     }
+  }
+
+  .IntermediateInfo {
+    min-height: 180px;
   }
 }
 

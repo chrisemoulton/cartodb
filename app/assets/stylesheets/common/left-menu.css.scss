@@ -5,11 +5,16 @@
 
 .LeftMenu {
   flex-shrink: 0;
+  height: 100%;
   width: 200px;
   border-right: 1px solid $Black;
   background-color: $DarkGrey6;
-
 } 
+
+.LeftMenuScrollable {
+  height: 100%;
+  overflow-y: auto;
+}
 
 .LeftMenuContent {
   .MenuItem {
@@ -25,7 +30,7 @@
       color: $White;
     }
     &.expanded .ParentChevron {
-      background-image: url('../images/beam_dropdown_right.png');
+      background-image: url('../images/beam_dropdown_arrow_down.png');
     }
   }
 
@@ -42,6 +47,10 @@
   }
   .SubCategory {
     margin-left:30px;
+    .MenuItem {
+      margin-left: -30px;
+      padding-left: 42px;
+    }
   }
   .ChevronPlaceholder {
     display:inline-block;
@@ -55,7 +64,7 @@
     width:12px;
     height:12px;
     margin-right:5px;
-    background-image: url('../images/beam_dropdown_arrow_down.png');
+    background-image: url('../images/beam_dropdown_arrow_right.png');
     background-repeat: no-repeat;
   }
   .CategoryCount { 
@@ -72,6 +81,7 @@
 
 .blp-navigator-category {
   color: $White;
+  margin-top: 13px;
   padding: 0px 12px;
 }
 
