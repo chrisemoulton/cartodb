@@ -8,6 +8,7 @@ require_relative '../carto/api/visualization_presenter'
 require_relative '../../helpers/embed_redis_cache'
 require_dependency 'static_maps_url_helper'
 require_dependency 'carto/user_db_size_cache'
+require_relative '../../../lib/profile_attributes'
 
 class Admin::VisualizationsController < Admin::AdminController
   include CartoDB, VisualizationsControllerHelper
@@ -66,6 +67,7 @@ class Admin::VisualizationsController < Admin::AdminController
 
     @google_maps_query_string = @visualization.user.google_maps_query_string
     @basemaps = @visualization.user.basemaps
+    @profile_attributes = CartoDB::ProfileAttributes.load(current_user, warden.session(current_user.username))
 
     unless @visualization.has_permission?(current_user, Visualization::Member::PERMISSION_READWRITE)
       if request.original_fullpath =~ %r{/tables/}
