@@ -51,6 +51,8 @@ class User < Sequel::Model
 
   one_to_many :feature_flags_user
 
+  one_to_many :profiles_user
+
   plugin :many_through_many
   many_through_many :groups, [[:users_groups, :user_id, :group_id]]
 
@@ -1606,6 +1608,10 @@ class User < Sequel::Model
   def created_with_invitation?
     user_creation = get_user_creation
     user_creation && user_creation.invitation_token
+  end
+
+  def profiles
+    profiles_user.map {|pu| pu.profile}
   end
 
   private
