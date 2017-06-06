@@ -16,11 +16,10 @@ $cLiked: #D93F56;
   vertical-align: top; 
 }
 .LikesIndicator-icon {
-  @include transforms(1);
-  color: $nGrey9;
-  font-size: $sFontSize-small;
-  width: $sFontSize-small;
-  height: $sFontSize-small;
+  width: 13px;
+  height: 13px;
+  background-image: url('../images/favorite_off.svg');
+  background-repeat: no-repeat;
 }
 .LikesIndicator-icon.LikesIndicator-icon--big {
   font-size: $sFontSize-largest;
@@ -33,14 +32,14 @@ $cLiked: #D93F56;
   text-decoration: none;
   .LikesIndicator-icon {
     color: $cLiked;
-    background-image: url('../images/sprites/common/star_32_selected.png');
+    background-image: url('../images/favorite_on.svg');
   }
 }
 .LikesIndicator.is-liked {
   color: $cLiked;
   .LikesIndicator-icon {
     color: $cLiked;
-    background-image: url('../images/sprites/common/star_32_selected.png');
+    background-image: url('../images/favorite_on.svg');
   }
   &:hover {
     color: $cLiked;
