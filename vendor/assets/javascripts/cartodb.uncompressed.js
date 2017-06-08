@@ -1,6 +1,6 @@
 // cartodb.js version: 3.15.9
 // uncompressed version: cartodb.uncompressed.js
-// sha: 0331cd4a27aa415b01dd809dce02c758c1c7176d
+// sha: 43385dce856f9dcc97dd4ef88965a60778acaee9
 (function() {
   var define;  // Undefine define (require.js), see https://github.com/CartoDB/cartodb.js/issues/543
   var root = this;
@@ -29201,6 +29201,9 @@ cdb.geo.MapView = cdb.core.View.extend({
     this.add_related_model(this.map);
     this.add_related_model(this.map.layers);
 
+    this._updateLockPan();
+    this._updateLockZoom();
+
     this.autoSaveBounds = false;
 
     // this var stores views information for each model
@@ -29281,6 +29284,8 @@ cdb.geo.MapView = cdb.core.View.extend({
     this.map.bind('change:keyboard',        this._setKeyboard, this);
     this.map.bind('change:center',          this._setCenter, this);
     this.map.bind('change:attribution',     this.setAttribution, this);
+    this.map.bind('change:lock_pan',        this._updateLockPan, this);
+    this.map.bind('change:lock_zoom',       this._updateLockZoom, this);
   },
 
   /** unbind model properties */
@@ -29292,6 +29297,8 @@ cdb.geo.MapView = cdb.core.View.extend({
     this.map.unbind('change:keyboard',        null, this);
     this.map.unbind('change:center',          null, this);
     this.map.unbind('change:attribution',     null, this);
+    this.map.unbind('change:lock_pan',        null, this);
+    this.map.unbind('change:lock_zoom',       null, this);
   },
 
   _changeBounds: function() {
@@ -29347,6 +29354,71 @@ cdb.geo.MapView = cdb.core.View.extend({
     }
     return l;
   },
+
+  /**
+   * Call {@link _lockPan} or {@link _unlockPan} as appropriate
+   * based on the value of {lock_pan} of this MapView's map model.
+   * @private
+   */
+  _updateLockPan: function () {
+    if (this.map.get('lock_pan')) {
+      this._lockPan();
+    }
+    else {
+      this._unlockPan();
+    }
+  },
+
+  /**
+   * Call {@link _lockZoom} or {@link _unlockZoom} as appropriate
+   * based on the value of {lock_zoom} of this MapView's map model.
+   * @private
+   */
+  _updateLockZoom: function () {
+    if (this.map.get('lock_zoom')) {
+      this._lockZoom();
+    }
+    else {
+      this._unlockZoom();
+    }
+  },
+
+  /**
+   * Disable user panning through all available mechanisms.
+   * The base implementation of this method does nothing -
+   * it is up to each concrete MapView to ensure support for
+   * this functionality.
+   * @private
+   */
+  _lockPan: function() {},
+
+  /**
+   * Enable user panning through all available mechanisms.
+   * The base implementation of this method does nothing -
+   * it is up to each concrete MapView to ensure support for
+   * this functionality.
+   * @private
+   */
+  _unlockPan: function() {},
+
+  /**
+   * Disable user zooming through all available mechanisms.
+   * The base implementation of this method does nothing -
+   * it is up to each concrete MapView to ensure support for
+   * this functionality.
+   * @private
+   */
+  _lockZoom: function() {},
+
+  /**
+   * Enable user zooming through all available mechanisms.
+   * The base implementation of this method does nothing -
+   * it is up to each concrete MapView to ensure support for
+   * this functionality.
+   * @private
+   */
+  _unlockZoom: function() {},
+
 
   _setZoom: function(model, z) {
     throw "to be implemented";
@@ -39887,6 +39959,11 @@ if(typeof(google) != "undefined" && typeof(google.maps) != "undefined") {
                 }).extend([new ol.control.Control({ element: this._attributionElement })])});
             }
 
+            // Ensure lock pan and zoom are correctly set following
+            // creation of map_ol
+            this._updateLockPan();
+            this._updateLockZoom();
+
             this.map.bind('set_view', this._setView, this);
             this.map.layers.bind('add', this._addLayer, this);
             this.map.layers.bind('remove', this._removeLayer, this);
@@ -39955,6 +40032,77 @@ if(typeof(google) != "undefined" && typeof(google.maps) != "undefined") {
             if (bounds) {
                 this.showBounds(bounds);
             }
+
+        },
+
+        _lockPan: function() {
+            if (this.map_ol) {
+                var self = this;
+                this.map_ol.getInteractions().forEach(function (interaction) {
+                    if (self._isPanInteraction(interaction)) {
+                        interaction.setActive(false);
+                    }
+                });
+            }
+        },
+
+        _unlockPan: function() {
+            if (this.map_ol) {
+                var self = this;
+                this.map_ol.getInteractions().forEach(function (interaction) {
+                    if (self._isPanInteraction(interaction)) {
+                        interaction.setActive(true);
+                    }
+                });
+            }
+        },
+
+        _lockZoom: function() {
+            if (this.map_ol) {
+                var self = this;
+                this.map_ol.getInteractions().forEach(function (interaction) {
+                    if (self._isZoomInteraction(interaction)) {
+                        interaction.setActive(false);
+                    }
+                });
+            }
+        },
+
+        _unlockZoom: function() {
+            if (this.map_ol) {
+                var self = this;
+                this.map_ol.getInteractions().forEach(function (interaction) {
+                    if (self._isZoomInteraction(interaction)) {
+                        interaction.setActive(true);
+                    }
+                });
+            }
+        },
+
+        /**
+         * Return true if the {interaction} is one of
+         * {@link cdb.geo.OpenLayersMapView#PAN_INTERACTION_TYPES}
+         * @param interaction {@link ol.interaction.Interaction}
+         * @private
+         */
+        _isPanInteraction: function (interaction) {
+            return _.some(
+                cdb.geo.OpenLayersMapView.PAN_INTERACTION_TYPES,
+                function(type) { return interaction instanceof type; }
+            );
+        },
+
+        /**
+         * Return true if the {interaction} is one of
+         * {@link cdb.geo.OpenLayersMapView#ZOOM_INTERACTION_TYPES}
+         * @param interaction {@link ol.interaction.Interaction}
+         * @private
+         */
+        _isZoomInteraction: function (interaction) {
+            return _.some(
+                cdb.geo.OpenLayersMapView.ZOOM_INTERACTION_TYPES,
+                function(type) { return interaction instanceof type; }
+            );
         },
 
         showBounds: function(bounds){
@@ -40168,30 +40316,49 @@ if(typeof(google) != "undefined" && typeof(google.maps) != "undefined") {
         }
     },
     {
-            layerViewMap: {
-                "tiled": cdb.geo.OpenLayersTiledLayerView,
-                "layergroup": cdb.geo.OpenLayersCartodbLayerGroupView,
-                "namedmap": cdb.geo.OpenLayersCartodbNamedMapView,
-                "plain": cdb.geo.OpenLayersPlainLayerView,
-                "torque": function(layer, map) { 
-                    return new cdb.geo.OpenLayersTorqueLayer(layer,map);
-                }
-            },
-
-            createLayer: function(layer, opt_map){
-                var map = opt_map || this.map_ol;
-
-                var layerViewType = this.layerViewMap[layer.get('type').toLowerCase()];
-                var layerView;
-
-                if(layerViewType){
-                    layerView = new layerViewType(layer, map);
-                }else{
-                    cdb.log.error("MAP: " + layer.get('type') + " is not defined");
-                }
-
-                return layerView;
+        layerViewMap: {
+            "tiled": cdb.geo.OpenLayersTiledLayerView,
+            "layergroup": cdb.geo.OpenLayersCartodbLayerGroupView,
+            "namedmap": cdb.geo.OpenLayersCartodbNamedMapView,
+            "plain": cdb.geo.OpenLayersPlainLayerView,
+            "torque": function(layer, map) {
+                return new cdb.geo.OpenLayersTorqueLayer(layer,map);
             }
+        },
+
+        /**
+         * As defined in http://openlayers.org/en/master/apidoc/ol.interaction.html
+         */
+        PAN_INTERACTION_TYPES: [
+            ol.interaction.DragPan,
+            ol.interaction.KeyboardPan,
+        ],
+
+        /**
+         * As defined in http://openlayers.org/en/master/apidoc/ol.interaction.html
+         */
+        ZOOM_INTERACTION_TYPES: [
+            ol.interaction.DoubleClickZoom,
+            ol.interaction.PinchZoom,
+            ol.interaction.KeyboardZoom,
+            ol.interaction.MouseWheelZoom,
+            ol.interaction.DragZoom,
+        ],
+
+        createLayer: function(layer, opt_map){
+            var map = opt_map || this.map_ol;
+
+            var layerViewType = this.layerViewMap[layer.get('type').toLowerCase()];
+            var layerView;
+
+            if(layerViewType){
+                layerView = new layerViewType(layer, map);
+            }else{
+                cdb.log.error("MAP: " + layer.get('type') + " is not defined");
+            }
+
+            return layerView;
+        }
     });
 })();/**
  * generic dialog
