@@ -89,6 +89,9 @@ class User < Sequel::Model
 
   COMMON_DATA_ACTIVE_DAYS = 31
 
+  # Maximum lifetime of a session profile in seconds
+  SESSION_PROFILE_TTL = 24 * 60 * 60
+
   self.raise_on_typecast_failure = false
   self.raise_on_save_failure = false
 
@@ -1610,8 +1613,54 @@ class User < Sequel::Model
     user_creation && user_creation.invitation_token
   end
 
+  # Profiles with which this user is statically linked
+  # i.e. linked through the profiles_users table
   def profiles
-    profiles_user.map {|pu| pu.profile}
+    profiles_user.map(&:profile)
+  end
+
+  # Key used to store a sorted set of all session profile ids
+  # which which this user is associated. Members are indexed
+  # by their expiration date in seconds since the Unix Epoch.
+  def session_profile_key
+    @session_profile_key ||= "user:#{id}:session_profiles"
+  end
+
+  # Add the specified profile_ids to the session
+  def register_session_profiles(profile_ids)
+
+    # Set expiration date for each profile id
+    expiration_timestamp = Time.now.to_i + SESSION_PROFILE_TTL
+    timestamp_ids = profile_ids.flat_map { |id| [expiration_timestamp, id] }
+    $users_metadata.zadd(session_profile_key, timestamp_ids)
+
+    # Cap lifetime of overall set
+    $users_metadata.expire(session_profile_key, SESSION_PROFILE_TTL)
+
+  end
+
+  # Remove session profiles with expiration dates in the past.
+  def flush_session_profiles
+    current_timestamp = Time.now.to_i
+    $users_metadata.zremrangebyscore(session_profile_key, 0, current_timestamp)
+  end
+
+  # Get the session profiles associated with this user
+  def session_profiles
+    # Remove expired profiles
+    flush_session_profiles
+    # Query Profile associated with stored ids
+    profile_ids = $users_metadata.zrange(session_profile_key, 0, -1)
+    Profile.where('id IN ?', profile_ids).to_a
+  end
+
+  # Return a collection of attributes containing all attributes
+  # of each profile to which this user is associated
+  def profile_attributes
+    all_profiles = (profiles + session_profiles).uniq(&:id)
+    all_profiles.reduce({}) do |attr, prof|
+      attr.merge(prof.attrs_hash)
+    end
   end
 
   private
@@ -1689,4 +1738,5 @@ class User < Sequel::Model
   def set_last_password_change_date
     self.last_password_change_date = Time.zone.now unless new?
   end
+
 end
