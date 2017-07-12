@@ -4693,7 +4693,7 @@
                     "ansi-styles": {
                       "version": "2.1.0",
                       "from": "ansi-styles@^2.1.0",
-                      "resolved": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-2.1.0.tgz"
+                      "resolved": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-2.1.1.tgz"
                     },
                     "are-we-there-yet": {
                       "version": "1.0.6",
@@ -6431,8 +6431,8 @@
           "dependencies": {
             "ansi-styles": {
               "version": "2.2.0",
-              "from": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-2.2.0.tgz",
-              "resolved": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-2.2.0.tgz",
+              "from": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-2.1.1.tgz",
+              "resolved": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-2.1.1.tgz",
               "dependencies": {
                 "color-convert": {
                   "version": "1.0.0",
@@ -6496,8 +6496,8 @@
           "dependencies": {
             "ansi-styles": {
               "version": "2.2.0",
-              "from": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-2.2.0.tgz",
-              "resolved": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-2.2.0.tgz",
+              "from": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-2.1.1.tgz",
+              "resolved": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-2.1.1.tgz",
               "dependencies": {
                 "color-convert": {
                   "version": "1.0.0",
@@ -7146,8 +7146,8 @@
           "dependencies": {
             "ansi-styles": {
               "version": "2.2.0",
-              "from": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-2.2.0.tgz",
-              "resolved": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-2.2.0.tgz",
+              "from": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-2.1.1.tgz",
+              "resolved": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-2.1.1.tgz",
               "dependencies": {
                 "color-convert": {
                   "version": "1.0.0",
@@ -7824,8 +7824,8 @@
           "dependencies": {
             "ansi-styles": {
               "version": "2.2.0",
-              "from": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-2.2.0.tgz",
-              "resolved": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-2.2.0.tgz",
+              "from": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-2.1.1.tgz",
+              "resolved": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-2.1.1.tgz",
               "dependencies": {
                 "color-convert": {
                   "version": "1.0.0",
@@ -8522,8 +8522,8 @@
               "dependencies": {
                 "ansi-styles": {
                   "version": "2.2.0",
-                  "from": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-2.2.0.tgz",
-                  "resolved": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-2.2.0.tgz",
+                  "from": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-2.1.1.tgz",
+                  "resolved": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-2.1.1.tgz",
                   "dependencies": {
                     "color-convert": {
                       "version": "1.0.0",
@@ -9927,8 +9927,8 @@
                   "dependencies": {
                     "ansi-styles": {
                       "version": "2.2.0",
-                      "from": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-2.2.0.tgz",
-                      "resolved": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-2.2.0.tgz",
+                      "from": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-2.1.1.tgz",
+                      "resolved": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-2.1.1.tgz",
                       "dependencies": {
                         "color-convert": {
                           "version": "1.0.0",
@@ -10323,8 +10323,8 @@
                       "dependencies": {
                         "ansi-styles": {
                           "version": "2.2.0",
-                          "from": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-2.2.0.tgz",
-                          "resolved": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-2.2.0.tgz",
+                          "from": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-2.1.1.tgz",
+                          "resolved": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-2.1.1.tgz",
                           "dependencies": {
                             "color-convert": {
                               "version": "1.0.0",
@@ -11263,8 +11263,8 @@
                   "dependencies": {
                     "ansi-styles": {
                       "version": "2.2.0",
-                      "from": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-2.2.0.tgz",
-                      "resolved": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-2.2.0.tgz",
+                      "from": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-2.1.1.tgz",
+                      "resolved": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-2.1.1.tgz",
                       "dependencies": {
                         "color-convert": {
                           "version": "1.0.0",
@@ -13997,7 +13997,7 @@
                 "ansi-styles": {
                   "version": "2.1.0",
                   "from": "ansi-styles@^2.1.0",
-                  "resolved": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-2.1.0.tgz"
+                  "resolved": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-2.1.1.tgz"
                 },
                 "are-we-there-yet": {
                   "version": "1.0.6",
