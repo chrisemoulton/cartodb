@@ -45,6 +45,7 @@ describe UserTable do
     let(:unicode_aliases) do
       {
         spain: 'España',
+        greece: 'Ελλάδα',
         czech: 'Česká',
         jordan: 'المملكة الأردنية الهاشمية',
         tifinagh: 'ⵜⵉⴼⵉⵏⴰⵗ',
