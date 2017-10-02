@@ -47,6 +47,31 @@
 
 }
 
+.option-button.chk_global_winds {
+  height: 30px;
+
+  & > .toggle  {
+    display: inline-block;
+    position: absolute;
+    margin-top: 1px;
+    left: 10px;
+    width: 16px;
+    height: 16px;
+    color: black;
+    background-color: #505050;
+    border: 1px solid #000;
+    border-radius: 2px;
+
+    &.selected {
+      background-image: url(../images/beam_checkbox_check_black.svg);
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: 7px 7px;
+      background-color: #3c9fff;
+    }
+  }
+}
+
 div.dropdown.basemap {
 
   border: 1px solid #999999;
