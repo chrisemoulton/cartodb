@@ -87,7 +87,7 @@ module CartoDB
         generate_overlay(member.id, options, "search", order).save
       end
 
-      def create_title_overlay(member, order, prof_attrs)
+      def create_title_overlay(member, order, prof_attrs = {})
         options = {
           "x": 0,
           "y": 0,
@@ -97,7 +97,7 @@ module CartoDB
             "color": "#ffffff",
             "text-align": "left",
             "font-size": prof_attrs["defaultTitleFontSize"] || 20,
-            "font-family-name": "Helvetica",
+            "font-family-name": prof_attrs["defaultFontFamilyName"] || "Helvetica",
             "box-padding": 10,
             "box-color": "#000000",
             "box-opacity": prof_attrs["defaultTitleOpacity"] || 0.7
