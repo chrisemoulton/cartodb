@@ -96,7 +96,7 @@ module CartoDB
             "z-index": 4,
             "color": "#ffffff",
             "text-align": "left",
-            "font-size": prof_attrs["defaultTitleFontSize"] || 20,
+            "font-size": prof_attrs["defaultFixedTitleFontSize"] || 20,
             "font-family-name": prof_attrs["defaultFontFamilyName"] || "Helvetica",
             "box-padding": 10,
             "box-color": "#000000",
