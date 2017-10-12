@@ -350,10 +350,15 @@ module Carto
       end
 
       def count
-        user_id = current_user.id
         type = params.fetch(:type, 'datasets')
         typeList = (type == 'datasets') ? "'table','remote'" : "'derived'"
         categoryType = (type == 'datasets') ? 1 : 2
+        samples = categoryType == 2 &&
+                Cartodb.config[:map_samples] &&
+                Cartodb.config[:map_samples]["username"]
+        user_id = samples ?
+                Carto::User.where(username: Cartodb.config[:map_samples]["username"]).first.id:
+                current_user.id 
 
         is_common_data_user = user_id == common_data_user.id
         union_common_data = !is_common_data_user && (type == 'datasets')

@@ -50,8 +50,13 @@ module Carto
         end
 
         if current_user
+          samples_user_id = nil
+          if samples && Cartodb.config[:map_samples] && Cartodb.config[:map_samples]["username"]
+            samples_user_id = Carto::User.where(username: Cartodb.config[:map_samples]["username"]).first.id
+          end
+
           if only_liked
-            vqb.with_liked_by_user_id(current_user.id)
+            vqb.with_liked_by_user_id(samples_user_id || current_user.id)
           end
 
           case shared
