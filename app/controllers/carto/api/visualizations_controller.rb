@@ -350,21 +350,20 @@ module Carto
       end
 
       def count
+        user_id = current_user.id
         type = params.fetch(:type, 'datasets')
         typeList = (type == 'datasets') ? "'table','remote'" : "'derived'"
         categoryType = (type == 'datasets') ? 1 : 2
-        samples = categoryType == 2 &&
-                Cartodb.config[:map_samples] &&
-                Cartodb.config[:map_samples]["username"]
-        user_id = samples ?
-                Carto::User.where(username: Cartodb.config[:map_samples]["username"]).first.id:
-                current_user.id 
+        samples_user_id = categoryType == 2 && Cartodb.config[:map_samples] && Cartodb.config[:map_samples]["username"] &&
+                          Carto::User.where(username: Cartodb.config[:map_samples]["username"]).first.id
+        sample_type_counts = Object.new
 
         is_common_data_user = user_id == common_data_user.id
         union_common_data = !is_common_data_user && (type == 'datasets')
 
         sharedEmptyDatasetCondition = is_common_data_user ? "" : "AND v.name <> '#{Cartodb.config[:shared_empty_dataset_name]}'"
 
+        #type counts
         query = "SELECT
               COUNT(*) AS all,
               SUM(CASE WHEN likes > 0 THEN 1 ELSE 0 END) AS liked,
@@ -391,6 +390,25 @@ module Carto
         query += ") AS results2"
         type_counts = Sequel::Model.db.fetch(query, *args).all
 
+        #sample maps counts
+        if categoryType == 2 && samples_user_id
+          user_id = samples_user_id
+          query = "SELECT
+                COUNT(*) AS all,
+                SUM(CASE WHEN likes > 0 THEN 1 ELSE 0 END) AS liked
+              FROM (
+                SELECT results.*, (SELECT COUNT(*) FROM likes WHERE actor=? AND subject=results.id) AS likes FROM (
+                  SELECT v.id, v.type, v.category, v.locked
+                    FROM visualizations AS v
+                    WHERE v.user_id=? AND v.type IN (#{typeList})
+                  ) AS results"
+          args = [user_id, user_id]
+
+          query += ") AS results2"
+          sample_type_counts = Sequel::Model.db.fetch(query, *args).all[0]
+        end
+
+        #category counts
         query = "SELECT categories.id, categories.parent_id, (
               (SELECT COUNT(*) FROM visualizations AS v
                   LEFT JOIN visualizations AS v2 ON v2.user_id=v.user_id AND v.type='remote' AND v2.type='table' AND v2.name=v.name
@@ -423,7 +441,7 @@ module Carto
           end
         end
 
-        render :json => '{"types":' + type_counts[0].to_json + ' ,"categories":' + category_counts.to_json + '}'
+        render :json => '{"types":' + type_counts[0].to_json + ', "sample_types":' + sample_type_counts.to_json + ' ,"categories":' + category_counts.to_json + '}'
       end
 
 
