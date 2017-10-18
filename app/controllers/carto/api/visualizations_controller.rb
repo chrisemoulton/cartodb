@@ -362,6 +362,7 @@ module Carto
         union_common_data = !is_common_data_user && (type == 'datasets')
 
         sharedEmptyDatasetCondition = is_common_data_user ? "" : "AND v.name <> '#{Cartodb.config[:shared_empty_dataset_name]}'"
+        lockedCondition = samples_user_id ? "AND v.locked=true" : ""
 
         #type counts
         query = "SELECT
@@ -391,7 +392,7 @@ module Carto
         type_counts = Sequel::Model.db.fetch(query, *args).all
 
         #sample maps counts
-        if categoryType == 2 && samples_user_id
+        if samples_user_id
           user_id = samples_user_id
           query = "SELECT
                 COUNT(*) AS all,
@@ -400,7 +401,7 @@ module Carto
                 SELECT results.*, (SELECT COUNT(*) FROM likes WHERE actor=? AND subject=results.id) AS likes FROM (
                   SELECT v.id, v.type, v.category, v.locked
                     FROM visualizations AS v
-                    WHERE v.user_id=? AND v.type IN (#{typeList})
+                    WHERE v.user_id=? AND v.type IN (#{typeList}) AND v.locked=true
                   ) AS results"
           args = [user_id, user_id]
 
@@ -412,7 +413,7 @@ module Carto
         query = "SELECT categories.id, categories.parent_id, (
               (SELECT COUNT(*) FROM visualizations AS v
                   LEFT JOIN visualizations AS v2 ON v2.user_id=v.user_id AND v.type='remote' AND v2.type='table' AND v2.name=v.name
-                WHERE v2.id IS NULL AND v.user_id=? AND v.type IN (#{typeList}) #{sharedEmptyDatasetCondition} AND v.category=categories.id) + "
+                WHERE v2.id IS NULL AND v.user_id=? AND v.type IN (#{typeList}) #{sharedEmptyDatasetCondition} #{lockedCondition} AND v.category=categories.id) + "
 
         if union_common_data
           query += "(SELECT COUNT(*) FROM visualizations AS v
