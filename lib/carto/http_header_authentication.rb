@@ -12,13 +12,17 @@ module Carto
     end
 
     def get_user(request)
-      puts "header-auth : getting user" 
+      puts "header-auth : getting user"
       header = identity(request)
       return nil if header.nil? || header.empty?
 
       puts "header-auth : valid header"
-      
-      ::User.where("#{field(request)} = ?", header).first
+
+      puts "header-auth : checking profiles header"
+
+      user = ::User.where("#{field(request)} = ?", header).first
+      parse_profiles_header(user, request.headers)
+      user
     end
 
     def autocreation_enabled?
@@ -88,5 +92,30 @@ module Carto
       puts "user-auto-creation : Trying to extract value from headers for #{header}, value is #{headers[header]}"
       !header.nil? && !header.empty? ? headers[header] : nil
     end
+
+    def get_profiles_header_field
+      @profiles_header_field ||= ::Cartodb.get_config(:http_header_authentication, 'profiles_header_field')
+    end
+
+    def get_profiles_header_null_value
+      @profiles_header_null_value ||= ::Cartodb.get_config(:http_header_authentication, 'profiles_header_null_value')
+    end
+
+    def parse_profiles_header(user, headers)
+      if user
+        profiles_header_field = get_profiles_header_field
+        profiles_header_null_value = get_profiles_header_null_value
+        profiles_header_value = nil
+        if (profiles_header_field &&
+            profiles_header_null_value &&
+            (profiles_header_value = headers[profiles_header_field]))
+          profile_names = profiles_header_value == profiles_header_null_value ? 
+                            [] : profiles_header_value.split(',')
+          puts "header-auth : parse_profiles_header - setting profiles for user #{user.username} to #{profile_names.to_s}"
+          user.replace_session_profiles(profile_names)
+        end
+      end
+    end
+
   end
 end
