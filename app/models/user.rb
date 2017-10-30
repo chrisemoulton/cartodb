@@ -1626,17 +1626,21 @@ class User < Sequel::Model
     @session_profile_key ||= "user:#{id}:session_profiles"
   end
 
-  # Add the specified profile_ids to the session
-  def register_session_profiles(profile_ids)
-
+  # Replace session profiles with those with
+  # the specified profile_names.
+  def replace_session_profiles(profile_names)
     # Set expiration date for each profile id
+    profile_ids = profile_names.empty? ? [] : Profile.where(name: profile_names).map(&:id).to_a
     expiration_timestamp = Time.now.to_i + SESSION_PROFILE_TTL
     timestamp_ids = profile_ids.flat_map { |id| [expiration_timestamp, id] }
-    $users_metadata.zadd(session_profile_key, timestamp_ids)
 
-    # Cap lifetime of overall set
-    $users_metadata.expire(session_profile_key, SESSION_PROFILE_TTL)
-
+    $users_metadata.multi do
+      # Replace sorted set contents
+      $users_metadata.zremrangebyrank(session_profile_key, 0, -1)
+      $users_metadata.zadd(session_profile_key, timestamp_ids) if !timestamp_ids.empty?
+      # Cap lifetime of overall set
+      $users_metadata.expire(session_profile_key, SESSION_PROFILE_TTL)
+    end
   end
 
   # Remove session profiles with expiration dates in the past.
@@ -1651,7 +1655,7 @@ class User < Sequel::Model
     flush_session_profiles
     # Query Profile associated with stored ids
     profile_ids = $users_metadata.zrange(session_profile_key, 0, -1)
-    Profile.where('id IN ?', profile_ids).to_a
+    profile_ids.empty? ? [] : Profile.where(id: profile_ids).to_a
   end
 
   # Return a collection of attributes containing all attributes
