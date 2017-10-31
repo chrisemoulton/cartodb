@@ -100,7 +100,7 @@ module CartoDB
             "font-family-name": prof_attrs["defaultFontFamilyName"] || "Helvetica",
             "box-padding": 10,
             "box-color": "#000000",
-            "box-opacity": prof_attrs["defaultTitleOpacity"] || 0.7
+            "box-opacity": prof_attrs["defaultFixedTitleOpacity"] || 0.7
           },
           "extra": {
             "headerType": "title",
