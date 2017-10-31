@@ -335,6 +335,11 @@ class User < Sequel::Model
       destroy_shared_with
 
       assign_search_tweets_to_organization_owner
+
+      # Clean up profiles
+      self.profiles_user.each { |pu| pu.destroy }      
+      self.replace_session_profiles([])
+
     rescue StandardError => exception
       error_happened = true
       CartoDB::StdoutLogger.info "Error destroying user #{username}. #{exception.message}\n#{exception.backtrace}"
@@ -1636,10 +1641,12 @@ class User < Sequel::Model
 
     $users_metadata.multi do
       # Replace sorted set contents
-      $users_metadata.zremrangebyrank(session_profile_key, 0, -1)
-      $users_metadata.zadd(session_profile_key, timestamp_ids) if !timestamp_ids.empty?
-      # Cap lifetime of overall set
-      $users_metadata.expire(session_profile_key, SESSION_PROFILE_TTL)
+      $users_metadata.del(session_profile_key)
+      if !timestamp_ids.empty?
+        $users_metadata.zadd(session_profile_key, timestamp_ids) 
+        # Cap lifetime of overall set
+        $users_metadata.expire(session_profile_key, SESSION_PROFILE_TTL)
+      end
     end
   end
 
