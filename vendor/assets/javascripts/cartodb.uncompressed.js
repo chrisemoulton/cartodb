@@ -1,6 +1,6 @@
-// cartodb.js version: 3.15.9
+// cartodb.js version: 3.15.10
 // uncompressed version: cartodb.uncompressed.js
-// sha: 28dcdbb8746260108287abd0a2134e1184e286f5
+// sha: a316f4c786ae84597f7931cdaeea4540e914d7d4
 (function() {
   var define;  // Undefine define (require.js), see https://github.com/CartoDB/cartodb.js/issues/543
   var root = this;
@@ -11708,329 +11708,6 @@ L.Map.include({
 
 
 }(window, document));
-// Following https://github.com/Leaflet/Leaflet/blob/master/PLUGIN-GUIDE.md
-(function (factory, window) {
-
-	// define an AMD module that relies on 'leaflet'
-	if (typeof define === 'function' && define.amd) {
-		define(['leaflet'], factory);
-
-	// define a Common JS module that relies on 'leaflet'
-	} else if (typeof exports === 'object') {
-		module.exports = factory(require('leaflet'));
-	}
-
-	// attach your plugin to the global 'L' variable
-	if (typeof window !== 'undefined' && window.L) {
-		window.L.Control.MiniMap = factory(L);
-		window.L.control.minimap = function (layer, options) {
-			return new window.L.Control.MiniMap(layer, options);
-		};
-	}
-}(function (L) {
-
-	var MiniMap = L.Control.extend({
-		options: {
-			position: 'bottomright',
-			toggleDisplay: false,
-			zoomLevelOffset: -5,
-			zoomLevelFixed: false,
-			centerFixed: false,
-			zoomAnimation: false,
-			autoToggleDisplay: false,
-			width: 150,
-			height: 150,
-			collapsedWidth: 19,
-			collapsedHeight: 19,
-			aimingRectOptions: {color: '#ff7800', weight: 1, clickable: false},
-			shadowRectOptions: {color: '#000000', weight: 1, clickable: false, opacity: 0, fillOpacity: 0},
-			strings: {hideText: 'Hide MiniMap', showText: 'Show MiniMap'},
-			mapOptions: {}  // Allows definition / override of Leaflet map options.
-		},
-
-		// layer is the map layer to be shown in the minimap
-		initialize: function (layer, options) {
-			L.Util.setOptions(this, options);
-			// Make sure the aiming rects are non-clickable even if the user tries to set them clickable (most likely by forgetting to specify them false)
-			this.options.aimingRectOptions.clickable = false;
-			this.options.shadowRectOptions.clickable = false;
-			this._layer = layer;
-		},
-
-		onAdd: function (map) {
-
-			this._mainMap = map;
-
-			// Creating the container and stopping events from spilling through to the main map.
-			this._container = L.DomUtil.create('div', 'leaflet-control-minimap');
-			this._container.style.width = this.options.width + 'px';
-			this._container.style.height = this.options.height + 'px';
-			L.DomEvent.disableClickPropagation(this._container);
-			L.DomEvent.on(this._container, 'mousewheel', L.DomEvent.stopPropagation);
-
-			var mapOptions = {
-				attributionControl: false,
-				dragging: !this.options.centerFixed,
-				zoomControl: false,
-				zoomAnimation: this.options.zoomAnimation,
-				autoToggleDisplay: this.options.autoToggleDisplay,
-				touchZoom: this.options.centerFixed ? 'center' : !this._isZoomLevelFixed(),
-				scrollWheelZoom: this.options.centerFixed ? 'center' : !this._isZoomLevelFixed(),
-				doubleClickZoom: this.options.centerFixed ? 'center' : !this._isZoomLevelFixed(),
-				boxZoom: !this._isZoomLevelFixed(),
-				crs: map.options.crs
-			};
-			mapOptions = L.Util.extend(this.options.mapOptions, mapOptions);  // merge with priority of the local mapOptions object.
-
-			this._miniMap = new L.Map(this._container, mapOptions);
-
-			this._miniMap.addLayer(this._layer);
-
-			// These bools are used to prevent infinite loops of the two maps notifying each other that they've moved.
-			this._mainMapMoving = false;
-			this._miniMapMoving = false;
-
-			// Keep a record of this to prevent auto toggling when the user explicitly doesn't want it.
-			this._userToggledDisplay = false;
-			this._minimized = false;
-
-			if (this.options.toggleDisplay) {
-				this._addToggleButton();
-			}
-
-			this._miniMap.whenReady(L.Util.bind(function () {
-				this._aimingRect = L.rectangle(this._mainMap.getBounds(), this.options.aimingRectOptions).addTo(this._miniMap);
-				this._shadowRect = L.rectangle(this._mainMap.getBounds(), this.options.shadowRectOptions).addTo(this._miniMap);
-				this._mainMap.on('moveend', this._onMainMapMoved, this);
-				this._mainMap.on('move', this._onMainMapMoving, this);
-				this._miniMap.on('movestart', this._onMiniMapMoveStarted, this);
-				this._miniMap.on('move', this._onMiniMapMoving, this);
-				this._miniMap.on('moveend', this._onMiniMapMoved, this);
-			}, this));
-
-			return this._container;
-		},
-
-		addTo: function (map) {
-			L.Control.prototype.addTo.call(this, map);
-
-			var center = this.options.centerFixed || this._mainMap.getCenter();
-			this._miniMap.setView(center, this._decideZoom(true));
-			this._setDisplay(this._decideMinimized());
-			return this;
-		},
-
-		onRemove: function (map) {
-			this._mainMap.off('moveend', this._onMainMapMoved, this);
-			this._mainMap.off('move', this._onMainMapMoving, this);
-			this._miniMap.off('moveend', this._onMiniMapMoved, this);
-
-			this._miniMap.removeLayer(this._layer);
-		},
-
-		changeLayer: function (layer) {
-			this._miniMap.removeLayer(this._layer);
-			this._layer = layer;
-			this._miniMap.addLayer(this._layer);
-		},
-
-		_addToggleButton: function () {
-			this._toggleDisplayButton = this.options.toggleDisplay ? this._createButton(
-				'', this.options.strings.hideText, ('leaflet-control-minimap-toggle-display leaflet-control-minimap-toggle-display-' +
-				this.options.position), this._container, this._toggleDisplayButtonClicked, this) : undefined;
-
-			this._toggleDisplayButton.style.width = this.options.collapsedWidth + 'px';
-			this._toggleDisplayButton.style.height = this.options.collapsedHeight + 'px';
-		},
-
-		_createButton: function (html, title, className, container, fn, context) {
-			var link = L.DomUtil.create('a', className, container);
-			link.innerHTML = html;
-			link.href = '#';
-			link.title = title;
-
-			var stop = L.DomEvent.stopPropagation;
-
-			L.DomEvent
-				.on(link, 'click', stop)
-				.on(link, 'mousedown', stop)
-				.on(link, 'dblclick', stop)
-				.on(link, 'click', L.DomEvent.preventDefault)
-				.on(link, 'click', fn, context);
-
-			return link;
-		},
-
-		_toggleDisplayButtonClicked: function () {
-			this._userToggledDisplay = true;
-			if (!this._minimized) {
-				this._minimize();
-				this._toggleDisplayButton.title = this.options.strings.showText;
-			} else {
-				this._restore();
-				this._toggleDisplayButton.title = this.options.strings.hideText;
-			}
-		},
-
-		_setDisplay: function (minimize) {
-			if (minimize !== this._minimized) {
-				if (!this._minimized) {
-					this._minimize();
-				} else {
-					this._restore();
-				}
-			}
-		},
-
-		_minimize: function () {
-			// hide the minimap
-			if (this.options.toggleDisplay) {
-				this._container.style.width = this.options.collapsedWidth + 'px';
-				this._container.style.height = this.options.collapsedHeight + 'px';
-				this._toggleDisplayButton.className += (' minimized-' + this.options.position);
-			} else {
-				this._container.style.display = 'none';
-			}
-			this._minimized = true;
-		},
-
-		_restore: function () {
-			if (this.options.toggleDisplay) {
-				this._container.style.width = this.options.width + 'px';
-				this._container.style.height = this.options.height + 'px';
-				this._toggleDisplayButton.className = this._toggleDisplayButton.className
-					.replace('minimized-'	+ this.options.position, '');
-			} else {
-				this._container.style.display = 'block';
-			}
-			this._minimized = false;
-		},
-
-		_onMainMapMoved: function (e) {
-			if (!this._miniMapMoving) {
-				var center = this.options.centerFixed || this._mainMap.getCenter();
-
-				this._mainMapMoving = true;
-				this._miniMap.setView(center, this._decideZoom(true));
-				this._setDisplay(this._decideMinimized());
-			} else {
-				this._miniMapMoving = false;
-			}
-			this._aimingRect.setBounds(this._mainMap.getBounds());
-		},
-
-		_onMainMapMoving: function (e) {
-			this._aimingRect.setBounds(this._mainMap.getBounds());
-		},
-
-		_onMiniMapMoveStarted: function (e) {
-			if (!this.options.centerFixed) {
-				var lastAimingRect = this._aimingRect.getBounds();
-				var sw = this._miniMap.latLngToContainerPoint(lastAimingRect.getSouthWest());
-				var ne = this._miniMap.latLngToContainerPoint(lastAimingRect.getNorthEast());
-				this._lastAimingRectPosition = {sw: sw, ne: ne};
-			}
-		},
-
-		_onMiniMapMoving: function (e) {
-			if (!this.options.centerFixed) {
-				if (!this._mainMapMoving && this._lastAimingRectPosition) {
-					this._shadowRect.setBounds(new L.LatLngBounds(this._miniMap.containerPointToLatLng(this._lastAimingRectPosition.sw), this._miniMap.containerPointToLatLng(this._lastAimingRectPosition.ne)));
-					this._shadowRect.setStyle({opacity: 1, fillOpacity: 0.3});
-				}
-			}
-		},
-
-		_onMiniMapMoved: function (e) {
-			if (!this._mainMapMoving) {
-				this._miniMapMoving = true;
-				this._mainMap.setView(this._miniMap.getCenter(), this._decideZoom(false));
-				this._miniMap.setView(this._miniMap.getCenter(), this._decideZoom(true));
-				this._shadowRect.setStyle({opacity: 0, fillOpacity: 0});
-			} else {
-				this._mainMapMoving = false;
-			}
-		},
-
-		_isZoomLevelFixed: function () {
-			var zoomLevelFixed = this.options.zoomLevelFixed;
-			return this._isDefined(zoomLevelFixed) && this._isInteger(zoomLevelFixed);
-		},
-
-		_decideZoom: function (fromMaintoMini) {
-			if (!this._isZoomLevelFixed()) {
-				if (fromMaintoMini) {
-					return this._mainMap.getZoom() + this.options.zoomLevelOffset;
-				} else {
-					var currentDiff = this._miniMap.getZoom() - this._mainMap.getZoom();
-					var proposedZoom = this._miniMap.getZoom() - this.options.zoomLevelOffset;
-					var toRet;
-
-					if (currentDiff > this.options.zoomLevelOffset && this._mainMap.getZoom() < this._miniMap.getMinZoom() - this.options.zoomLevelOffset) {
-						// This means the miniMap is zoomed out to the minimum zoom level and can't zoom any more.
-						if (this._miniMap.getZoom() > this._lastMiniMapZoom) {
-							// This means the user is trying to zoom in by using the minimap, zoom the main map.
-							toRet = this._mainMap.getZoom() + 1;
-							// Also we cheat and zoom the minimap out again to keep it visually consistent.
-							this._miniMap.setZoom(this._miniMap.getZoom() - 1);
-						} else {
-							// Either the user is trying to zoom out past the mini map's min zoom or has just panned using it, we can't tell the difference.
-							// Therefore, we ignore it!
-							toRet = this._mainMap.getZoom();
-						}
-					} else {
-						// This is what happens in the majority of cases, and always if you configure the min levels + offset in a sane fashion.
-						toRet = proposedZoom;
-					}
-					this._lastMiniMapZoom = this._miniMap.getZoom();
-					return toRet;
-				}
-			} else {
-				if (fromMaintoMini) {
-					return this.options.zoomLevelFixed;
-				} else {
-					return this._mainMap.getZoom();
-				}
-			}
-		},
-
-		_decideMinimized: function () {
-			if (this._userToggledDisplay) {
-				return this._minimized;
-			}
-
-			if (this.options.autoToggleDisplay) {
-				if (this._mainMap.getBounds().contains(this._miniMap.getBounds())) {
-					return true;
-				}
-				return false;
-			}
-
-			return this._minimized;
-		},
-
-		_isInteger: function (value) {
-			return typeof value === 'number';
-		},
-
-		_isDefined: function (value) {
-			return typeof value !== 'undefined';
-		}
-	});
-
-	L.Map.mergeOptions({
-		miniMapControl: false
-	});
-
-	L.Map.addInitHook(function () {
-		if (this.options.miniMapControl) {
-			this.miniMapControl = (new MiniMap()).addTo(this);
-		}
-	});
-
-	return MiniMap;
-
-}, window));
 /* wax - 7.0.1 - v6.0.4-181-ga34788e */
 
 
@@ -25982,7 +25659,7 @@ if (typeof window !== 'undefined') {
 
     var cdb = root.cdb = {};
 
-    cdb.VERSION = "3.15.9";
+    cdb.VERSION = "3.15.10";
     cdb.DEBUG = false;
 
     cdb.CARTOCSS_VERSIONS = {
@@ -26016,7 +25693,6 @@ if (typeof window !== 'undefined') {
         "../vendor/mustache.js",
 
         "../vendor/leaflet.js",
-        "../vendor/Control.MiniMap.js",
         "../vendor/wax.cartodb.js",
         "../vendor/GeoJSON.js", //geojson gmaps lib
 
@@ -26059,7 +25735,6 @@ if (typeof window !== 'undefined') {
         'geo/ui/infobox.js',
         'geo/ui/tooltip.js',
         'geo/ui/fullscreen.js',
-        'geo/ui/inset_map.js',
 
         'geo/sublayer.js',
         'geo/layer_definition.js',
@@ -26279,7 +25954,7 @@ if(!window.JSON) {
 
         /**
          * returns the base url to compose the final url
-         * http://user.cartodb.com/
+         * http://user.carto.com/
          */
         getSqlApiBaseUrl: function() {
           var url;
@@ -26297,7 +25972,7 @@ if(!window.JSON) {
         /**
          * returns the full sql api url, including the api endpoint
          * allos to specify the version
-         * http://user.cartodb.com/api/v1/sql
+         * http://user.carto.com/api/v1/sql
          */
         getSqlApiUrl: function(version) {
           version = version || 'v2';
@@ -26307,7 +25982,7 @@ if(!window.JSON) {
         /**
          *  returns the maps api host, removing user template
          *  and the protocol.
-         *  cartodb.com:3333
+         *  carto.com:3333
          */
         getMapsApiHost: function() {
           var url;
@@ -26322,8 +25997,8 @@ if(!window.JSON) {
 
     cdb.config = new Config();
     cdb.config.set({
-      cartodb_attributions: "",
-      cartodb_logo_link: "http://www.cartodb.com"
+      cartodb_attributions: "© <a href=\"https://carto.com/attributions\" target=\"_blank\">CARTO</a>",
+      cartodb_logo_link: "http://www.carto.com"
     });
 
 })();
@@ -27210,8 +26885,8 @@ cdb.geo.geocoder.YAHOO = {
           }
 
           for(var i in res) {
-            var r = res[i]
-              , position;
+            var r = res[i],
+            position;
 
             position = {
               lat: r.latitude,
@@ -27229,8 +26904,55 @@ cdb.geo.geocoder.YAHOO = {
         callback(coordinates);
       });
   }
-}
+};
 
+cdb.geo.geocoder.MAPZEN = {
+  keys:{
+    app_id:  "search-DH1Lkhw"
+  },
+
+  geocode: function(address, callback){
+    address = address.toLowerCase()
+      .replace(/é/g,'e')
+      .replace(/á/g,'a')
+      .replace(/í/g,'i')
+      .replace(/ó/g,'o')
+      .replace(/ú/g,'u');
+
+    var protocol = '';
+    if(location.protocol.indexOf('http') === -1) {
+      protocol = 'http:';
+    }
+
+    $.getJSON(protocol + '//search.mapzen.com/v1/search?text=' + encodeURIComponent(address) + '&api_key=' + this.keys.app_id, function(data) {
+  
+    var coordinates = [];
+    if (data && data.features && data.features.length > 0) {
+      var res = data.features;
+      for (var i in res){
+        var r = res[i],
+        position;
+        position = {
+          lat: r.geometry.coordinates[1],
+          lon: r.geometry.coordinates[0]
+        };
+        if(r.properties.layer){
+          position.type = r.properties.layer;
+        }  
+        
+        if(r.properties.label){
+          position.title = r.properties.label;
+        } 
+
+        coordinates.push(position);
+      }
+    }
+    if (callback) {
+      callback.call(this, coordinates);
+    }
+  });
+  }
+};
 
 
 cdb.geo.geocoder.NOKIA = {
@@ -27261,8 +26983,8 @@ cdb.geo.geocoder.NOKIA = {
           var res = data.results.items;
 
           for(var i in res) {
-            var r = res[i]
-              , position;
+            var r = res[i],
+            position;
 
             position = {
               lat: r.position[0],
@@ -27275,7 +26997,7 @@ cdb.geo.geocoder.NOKIA = {
                 south: r.bbox[1],
                 east: r.bbox[2],
                 west: r.bbox[0]
-              }
+              };
             }
             if (r.category) {
               position.type = r.category.id;
@@ -27292,67 +27014,7 @@ cdb.geo.geocoder.NOKIA = {
         }
       });
   }
-}
-
-cdb.geo.geocoder.BING = {
-
-  keys: {
-    api_key:   "AiYSWJYqsRki5Kkx-0Q9BN4IIw6OOLrJvc1Iw7ll_BQAPq7YJ2-0y0gtq5DdGY1L",
-  },
-
-  geocode: function(address, callback) {
-    address = address.toLowerCase()
-      .replace(/é/g,'e')
-      .replace(/á/g,'a')
-      .replace(/í/g,'i')
-      .replace(/ó/g,'o')
-      .replace(/ú/g,'u');
-
-      var protocol = '';
-      if(location.protocol.indexOf('https') === -1) {
-        protocol = 'https:';
-      }
-      $.ajax({
-          url: protocol + '//dev.virtualearth.net/REST/v1/Locations?q=' + encodeURIComponent(address) + '&maxResults=1' + '&key=' + this.keys.api_key,
-          dataType: 'jsonp',
-          jsonp: "jsonp",
-          success: function(data){
-            var coordinates = [];
-            if (data && data.resourceSets[0].resources) {
-            
-              var res = data.resourceSets[0].resources;
-
-              for(var i in res) {
-                var r=res[i],position;
-
-                if(r.point){
-                  position = {
-                    lat: r.point.coordinates[0],
-                    lon: r.point.coordinates[1]
-                  };
-                }
-
-                if (r.bbox) {
-                  position.boundingbox = {
-                    north: r.bbox[2],
-                    south: r.bbox[0],
-                    east: r.bbox[3],
-                    west: r.bbox[1]
-                  }
-                }
-                
-                coordinates.push(position);
-            }
-          }
-          if (callback) {
-            callback.call(this, coordinates);
-        }
-        }
-      }
-    );
-  }
-}
-
+};
 
 
 /**
@@ -27527,10 +27189,10 @@ cdb.geo.CartoDBLayer = cdb.geo.MapLayer.extend({
     interactivity: null,
     interaction: true,
     debug: false,
-    tiler_domain: "cartodb.com",
+    tiler_domain: "carto.com",
     tiler_port: "80",
     tiler_protocol: "http",
-    sql_api_domain: "cartodb.com",
+    sql_api_domain: "carto.com",
     sql_api_port: "80",
     sql_api_protocol: "http",
     extra_params: {},
@@ -28990,30 +28652,6 @@ cdb.geo.ui.ZoomInfo = cdb.core.View.extend({
     return this;
   }
 });
-// HELPERS
-
-cdb.geo.utils = cdb.geo.utils || {};
-
-cdb.geo.utils.cssStringToObject = function (str) {
-  if (!str) { return {}; }
-  var css = {};
-  var properties = str.split(';');
-  _.each(properties, function (p) {
-    var keyValue = p.trim().split(':');
-    if (keyValue.length === 2) {
-      css[keyValue[0].trim()] = keyValue[1].trim();
-    }
-  });
-  return css;
-}
-
-cdb.geo.utils.objectToCssString = function (obj) {
-  if (!(_.isObject(obj) && _.size(obj))) { return null; }
-
-  return _.map(obj, function (v, k) {
-    return k + ': ' + v;
-  }).join('; ');
-}
 
 // MODELS & COLLECTIONS
 
@@ -29133,6 +28771,18 @@ cdb.geo.ui.Legend = cdb.core.View.extend({
 
   className: "cartodb-legend",
 
+  events: {
+    "dragstart":            "_stopPropagation",
+    "mousedown":            "_stopPropagation",
+    "touchstart":           "_stopPropagation",
+    "MSPointerDown":        "_stopPropagation",
+    "dblclick":             "_stopPropagation",
+    "mousewheel":           "_stopPropagation",
+    "DOMMouseScroll":       "_stopPropagation",
+    "dbclick":              "_stopPropagation",
+    "click":                "_stopPropagation"
+  },
+
   initialize: function() {
     _.bindAll(this, "render", "show", "hide");
 
@@ -29144,6 +28794,10 @@ cdb.geo.ui.Legend = cdb.core.View.extend({
     this._setupItems();
 
     this._updateLegendType();
+  },
+
+  _stopPropagation: function(ev) {
+    ev.stopPropagation();
   },
 
   _setupModel: function() {
@@ -29703,7 +29357,7 @@ cdb.geo.ui.CategoryLegend = cdb.geo.ui.BaseLegend.extend({
 
     view = new cdb.geo.ui.LegendItem({
       model: item,
-      className: (item.get("value") && _.isString(item.get("value")) && item.get("value").indexOf("http") >= 0 || item.get("type") && item.get("type") == 'image') ? "bkg" : "",
+      className: (item.get("value") && item.get("value").indexOf("http") >= 0 || item.get("type") && item.get("type") == 'image') ? "bkg" : "",
       template: '\t\t<div class="bullet" style="background: <%= value %>"></div> <%- name || ((name === false) ? "false": "null") %>'
     });
 
@@ -29799,7 +29453,7 @@ cdb.geo.ui.ColorLegend = cdb.geo.ui.BaseLegend.extend({
 
     view = new cdb.geo.ui.LegendItem({
       model: item,
-      className: (item.get("value") && _.isString(item.get("value")) && item.get("value").indexOf("http") >= 0) ? "bkg" : "",
+      className: (item.get("value") && item.get("value").indexOf("http") >= 0) ? "bkg" : "",
       template: '\t\t<div class="bullet" style="background: <%= value %>"></div> <%- name || ((name === false) ? "false": "null") %>'
     });
 
@@ -29835,42 +29489,26 @@ cdb.geo.ui.Legend.Color = cdb.geo.ui.Legend.Category.extend({ });
  * */
 cdb.geo.ui.StackedLegend = cdb.core.View.extend({
 
-  className: "cartodb-legend-stack",
-
   events: {
-    'click .reset': 'resetStyle'
+    "dragstart":            "_stopPropagation",
+    "mousedown":            "_stopPropagation",
+    "touchstart":           "_stopPropagation",
+    "MSPointerDown":        "_stopPropagation",
+    "dblclick":             "_stopPropagation",
+    "mousewheel":           "_stopPropagation",
+    "DOMMouseScroll":       "_stopPropagation",
+    "dbclick":              "_stopPropagation",
+    "click":                "_stopPropagation"
   },
 
-  template: _.template('<div class="reset">&bigotimes;</div>'),
+  className: "cartodb-legend-stack",
 
   initialize: function() {
     _.each(this.options.legends, this._setupBinding, this);
-
-    this.vis = this.options.vis;
-
-    this._setupModels();
   },
 
-  _setupModels: function () {
-    this.model = new cdb.core.Model({});
-
-    if (this.vis) {
-        var style = this.vis.get('legend_style');
-        var css = cdb.geo.utils.cssStringToObject(style);
-        if (style) {
-            this.model.set('style', css);
-        }
-        this.model.bind('change:style', this._setStyle, this);
-    }
-    this.model.bind('change', this.render, this);
-
-    this.add_related_model(this.model);
-  },
-
-  _setStyle: function () {
-    var style = this.model.get('style') || {};
-    this.vis.set("legend_style", cdb.geo.utils.objectToCssString(style));
-    this.vis.save()
+  _stopPropagation: function(ev) {
+    ev.stopPropagation();
   },
 
   getLegendByIndex: function(index) {
@@ -29890,26 +29528,9 @@ cdb.geo.ui.StackedLegend = cdb.core.View.extend({
     this.add_related_model(legend.model);
   },
 
-  resetStyle: function (event) {
-    if (this.vis) {
-      this.model.set('style', null);
-      if (event && event.stopPropagation) {
-        event.stopPropagation();
-      }
-    }
-  },
-
   render: function() {
-
-    /*if (this.vis) {
-      this.$el.html(this.template());
-    }*/
-
     this._renderItems();
     this._checkVisibility();
-
-    var style = this.model.get('style');
-    this._renderLegendStyles(style);
 
     return this;
   },
@@ -29939,30 +29560,6 @@ cdb.geo.ui.StackedLegend = cdb.core.View.extend({
         item.show();
       }
     }, this);
-  },
-
-  _renderLegendStyles: function (style) {
-    if (!style) {
-        this.$el.attr('style', '');
-        return;
-    }
-    var formattedStyle = getFormattedStyle(style);
-    var textStyle = _.pick(formattedStyle, ['color', 'font-size', 'font-family']);
-    this.$el.css(formattedStyle);
-    this.$el.find('li').css(textStyle);
-    this.$el.find('.legend-title').css(textStyle);
-
-    function getFormattedStyle(style) {
-        var formattedStyle = _.extend({}, style);
-        // font-size already has px applied in the style model
-        var needsPx = ['font-size', 'width', 'height', 'border-radius', 'border-width'];
-        _.forEach(formattedStyle, function (v, k) {
-            if (needsPx.indexOf(k) !== -1) {
-                formattedStyle[k] = parseInt(v, 10) + 'px';
-            }
-        });
-        return formattedStyle;
-    }
   },
 
   show: function() {
@@ -30106,7 +29703,7 @@ cdb.geo.ui.CustomLegend = cdb.geo.ui.BaseLegend.extend({
 
     view = new cdb.geo.ui.LegendItem({
       model: item,
-      className: (item.get("value") && _.isString(item.get("value")) && item.get("value").indexOf("http") >= 0) ? "bkg" : "",
+      className: (item.get("value") && item.get("value").indexOf("http") >= 0) ? "bkg" : "",
       template: template
     });
 
@@ -31369,35 +30966,8 @@ cdb.geo.ui.Header = cdb.core.View.extend({
 
   className: 'cartodb-header',
 
-  defaults: {
-    style: {
-      textAlign: "left",
-      zIndex: 4,
-      color: "#ffffff",
-      fontSize: "20",
-      fontFamilyName: "Helvetica",
-      boxColor: 'rgba(0,0,0,0.5)',
-      boxOpacity: 0.7,
-      boxPadding: 10
-    }
-  },
-
   initialize: function() {
     var extra = this.model.get("extra");
-
-    this._cleanStyleProperties(this.options.style);
-
-    if (this.model.get("description")) {
-      this.defaults.style.fontSize = "12";
-    }
-
-    _.defaults(this.options.style, this.defaults.style);
-
-    this.style = new cdb.core.Model(this.options.style);
-
-    this.style.on("change", this._applyStyle, this);
-
-    this.add_related_model(this.style);
 
     this.model.set({
       title:            extra.title,
@@ -31417,68 +30987,6 @@ cdb.geo.ui.Header = cdb.core.View.extend({
       if (hasTitle)       this.$el.find(".content div.title").show();
       if (hasDescription) this.$el.find(".content div.description").show();
     }
-  },
-
-  _getStandardPropertyName: function(name) {
-    if (!name) {
-      return;
-    }
-
-    var parts = name.split("-");
-
-    if (parts.length === 1) {
-      return name;
-    } else {
-      return parts[0] + _.map(parts.slice(1), function(l) {
-        return l.slice(0,1).toUpperCase() + l.slice(1);
-      }).join("");
-    }
-  },
-
-  _cleanStyleProperties: function(hash) {
-
-    var standardProperties = {};
-
-    _.each(hash, function(value, key) {
-      standardProperties[this._getStandardPropertyName(key)] = value;
-    }, this);
-
-    this.options.style = standardProperties;
-
-  },
-
-  _getRGBA: function(color, opacity) {
-    return 'rgba(' + parseInt(color.slice(-6,-4),16) + ',' + parseInt(color.slice(-4,-2),16) +
-      ',' + parseInt(color.slice(-2),16) + ',' + opacity + ' )';
-  },
-
-  _applyStyle: function() {
-
-    var textColor  = this.style.get("color");
-    var textAlign  = this.style.get("textAlign");
-    var boxColor   = this.style.get("boxColor");
-    var boxOpacity = this.style.get("boxOpacity");
-    var boxPadding = this.style.get("boxPadding");
-    var lineWidth  = this.style.get("lineWidth");
-    var lineColor  = this.style.get("lineColor");
-    var fontFamily = this.style.get("fontFamilyName");
-
-    this.$content = this.$el.find(".content");
-
-    if (this.model.get("description")) {
-      this.$text = this.$el.find(".description");
-    } else {
-      this.$text = this.$el.find(".title");
-    }
-
-    this.$content.css("padding", boxPadding);
-    this.$text.css("font-size", this.style.get("fontSize") + "px");
-    this.$el.css("z-index", this.style.get("zIndex"));
-    this.$text.css('font-family', fontFamily);
-    this.$content.css('text-align', textAlign);
-    $(".cartodb-header").css("background-color", "transparent");
-    this.$content.css("background-color", this._getRGBA(boxColor, boxOpacity));
-    this.$text.css("color", this._getRGBA(textColor, 1));
   },
 
   // Add target attribute to all links
@@ -31509,14 +31017,8 @@ cdb.geo.ui.Header = cdb.core.View.extend({
       this.hide();
     }
 
-    var self = this;
-    // Delay applying styles to prevent rendering issues with other elements;
-    // annotations also do this.
-    setTimeout(function() {
-      self._applyStyle();
-    }, 500);
-
     return this;
+
   }
 
 });
@@ -31533,6 +31035,14 @@ cdb.geo.ui.Search = cdb.core.View.extend({
   _ZOOM_BY_CATEGORY: {
     'building': 18,
     'postal-area': 15,
+    'venue':18,
+    'region':8,
+    'address':18,
+    'country':5,
+    'county':8,
+    'locality':12,
+    'localadmin':11,
+    'neighbourhood':15,
     'default': 12
   },
 
@@ -31604,7 +31114,7 @@ cdb.geo.ui.Search = cdb.core.View.extend({
     this._showLoader();
     // Remove previous pin
     this._destroySearchPin();
-    cdb.geo.geocoder.BING.geocode(address, function(places) {
+    cdb.geo.geocoder.MAPZEN.geocode(address, function(places) {
       self._onResult(places);
       // Hide loader
       self._hideLoader();
@@ -31677,7 +31187,7 @@ cdb.geo.ui.Search = cdb.core.View.extend({
   _destroySearchPin: function() {
     this._unbindEvents();
     this._destroyPin();
-    this._destroyInfowindow()
+    this._destroyInfowindow();
   },
 
   _createInfowindow: function(position, address) {
@@ -33374,224 +32884,6 @@ cdb.ui.common.FullScreen = cdb.core.View.extend({
   }
 
 });
-/* global $:false, _:false, L:false */
-
-cdb.geo.ui.InsetMap = cdb.core.View.extend({
-
-  ANIMATION_DURATION_MS: 150,
-
-  AIMING_RECT_OPTIONS: {
-    color: '#000000',
-    weight: 1,
-    clickable: false
-  },
-
-  tagName: 'div',
-  className: 'cartodb-inset-map-box',
-
-  default_options: {
-    timeout: 0,
-    msg: ''
-  },
-
-  initialize: function () {
-    this.map = this.options.mapView.map;
-    this.mapView = this.options.mapView;
-    this._leafletMap = this.mapView.getNativeMap();
-
-    this.add_related_model(this.mapView);
-
-    this.map = this.options.map;
-
-    _.defaults(this.options, this.default_options);
-
-    this._setupModels();
-    this._addMiniMapControl();
-    this._setupEvents();
-  },
-
-  show: function () {
-    if (this.$control) {
-      this.$control.show();
-      this.miniMapControl._miniMap.invalidateSize();
-    }
-  },
-
-  hide: function () {
-    if (this.$control) {
-      this.$control.hide();
-    }
-  },
-
-  _addMiniMapControl: function () {
-    if (this.map.get('provider') !== 'leaflet') {
-      if (console && console.error) {
-        console.error('CartoDB InsetMap overlay requires a leaflet basemap');
-      }
-      // Do nothing
-      // TODO: Better handle this
-      return;
-    }
-
-    var miniMapConfig = {
-      position: this._getLeafletPosition(),
-      aimingRectOptions: this.AIMING_RECT_OPTIONS,
-      zoomLevelOffset: -6
-    };
-    this.miniMapControl = new L.Control.MiniMap(this._getMiniMapLayer(), miniMapConfig)
-                          .addTo(this._leafletMap);
-  },
-
-  // Setup the internal and custom model
-  _setupModels: function () {
-    this.model = this.options.model;
-    var options = this.model.get('options');
-    this.model.set(options);
-
-    if (!this.model.get('xPosition')) {
-      this.model.set('xPosition', 'left');
-    }
-    if (!this.model.get('yPosition')) {
-      this.model.set('yPosition', 'top');
-    }
-
-    this.model.on('change:display', this._onChangeDisplay, this);
-    this.model.on('change:y', this._onChangeY, this);
-    this.model.on('change:x', this._onChangeX, this);
-    this.model.on('change:xPosition', this._onChangePosition, this);
-    this.model.on('change:yPosition', this._onChangePosition, this);
-
-    this.model.on('destroy', this._onDestroy, this);
-  },
-
-  _setupEvents: function () {
-    $(window).on('resize', $.proxy(this._onWindowResize, this));
-    this.map.on('savingLayersFinish', this._onBaseLayerChanged, this);
-  },
-
-  _getMiniMapLayer: function () {
-    var baseLayer = this.map.getBaseLayer();
-    // Default to showing the first layer in the CartoDB default basemaps (currently Positron)
-    // TODO: No access to DEFAULT_BASEMAPS in cartodb.js. Used a static url for now,
-    // consider other options, or maybe we can just remove this fallback?
-    // var positron = cdb.admin.DEFAULT_BASEMAPS.CartoDB[0];
-    var positron = {url: 'http://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png'};
-    var url = baseLayer.get('url') || baseLayer.get('urlTemplate') || positron.url;
-    var config = _.extend({}, positron, baseLayer);
-    return new L.TileLayer(url, config);
-  },
-
-  _getLeafletPosition: function () {
-    var xPos = this.model.get('xPosition');
-    var yPos = this.model.get('yPosition');
-    return xPos === undefined || yPos === undefined ? 'topleft' : yPos + xPos;
-  },
-
-  _onWindowResize: function () {
-    if (this.miniMapControl) {
-      this.miniMapControl._miniMap.invalidateSize();
-    }
-  },
-
-  _onChangeDisplay: function () {
-    if (this.model.get('display')) {
-      this.show();
-    } else {
-      this.hide();
-    }
-  },
-
-  _onChangeX: function () {
-    if (!this.$control) {
-      return;
-    }
-
-    var x = this.model.get('x');
-    var position = this.model.get('xPosition');
-    if (position === 'left') {
-      this.$control.animate({ left: x }, this.ANIMATION_DURATION_MS);
-    } else {
-      this.$control.animate({ right: x }, this.ANIMATION_DURATION_MS);
-    }
-
-    this.trigger('change_x', this);
-  },
-
-  _onChangeY: function () {
-    if (!this.$control) {
-      return;
-    }
-
-    var y = this.model.get('y');
-    var position = this.model.get('yPosition');
-    if (position === 'top') {
-      this.$control.animate({ top: y }, this.ANIMATION_DURATION_MS);
-    } else {
-      this.$control.animate({ bottom: y }, this.ANIMATION_DURATION_MS);
-    }
-
-    this.trigger('change_y', this);
-  },
-
-  _onChangePosition: function () {
-    var controlPosition = this.miniMapControl.getPosition();
-    var position = this._getLeafletPosition();
-    if (position !== controlPosition) {
-      this.hide();
-      this.miniMapControl.setPosition(position);
-      // Re-render because the control is destroyed on a setPosition call
-      this.trigger('reposition', this);
-      this.model.save();
-      this.render();
-    }
-  },
-
-  _onBaseLayerChanged: function () {
-    this.renderBackgroundColor();
-    this.miniMapControl.changeLayer(this._getMiniMapLayer());
-  },
-
-  _onDestroy: function () {
-    $(window).off('resize', $.proxy(this._onWindowResize, this));
-    this.map.off('savingLayersFinish', this._onBaseLayerChanged);
-    this._leafletMap.removeControl(this.miniMapControl);
-  },
-
-  _getMap: function () {
-    return this.mapView.getNativeMap();
-  },
-
-  render: function () {
-    // Don't attach to this.$el because then the inset map element ends up outside the
-    // leaflet-controls container which causes trouble
-
-    if (!this.miniMapControl) {
-      return this;
-    }
-
-    var css = {};
-    css[this.model.get('xPosition')] = this.model.get('x');
-    css[this.model.get('yPosition')] = this.model.get('y');
-    this.$control = $(this.miniMapControl.getContainer());
-    this.$control.css(css);
-
-    this.renderBackgroundColor();
-    if (this.model.get('display')) {
-      this.show();
-    }
-
-    return this;
-  },
-
-  renderBackgroundColor: function () {
-    var layer = this.map.getBaseLayer();
-    var color = layer.get('color') || '';
-    if (this.$control) {
-      this.$control.css({ 'background': color });
-    }
-  }
-
-});
 function SubLayerFactory() {};
 
 SubLayerFactory.createSublayer = function(type, layer, position) {
@@ -35203,7 +34495,7 @@ cdb.geo.common.CartoDBLogo = {
         var protocol = location.protocol.indexOf('https') === -1 ? 'http': 'https';
         var link = cdb.config.get('cartodb_logo_link');
         cartodb_link.innerHTML = "<a href='" + link + "' target='_blank'><img width='71' height='29' src='" + protocol + "://cartodb.s3.amazonaws.com/static/new_logo" + (is_retina ? '@2x' : '') + ".png' style='position:absolute; bottom:" + 
-          ( position.bottom || 0 ) + "px; left:" + ( position.left || 0 ) + "px; display:block; width:71px!important; height:29px!important; border:none; outline:none;' alt='CartoDB' title='CartoDB' />";
+          ( position.bottom || 0 ) + "px; left:" + ( position.left || 0 ) + "px; display:block; width:71px!important; height:29px!important; border:none; outline:none;' alt='CARTO' title='CARTO' />";
         container.appendChild(cartodb_link);
       }
     },( timeout || 0 ));
@@ -35384,7 +34676,7 @@ cdb.geo.LeafLetTiledLayerView = LeafLetTiledLayerView;
       subdomains: 'abcd',
       minZoom: 0,
       maxZoom: 18,
-      attribution: 'Map designs by <a href="http://stamen.com/">Stamen</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, Provided by <a href="http://cartodb.com">CartoDB</a>'
+      attribution: 'Map designs by <a href="http://stamen.com/">Stamen</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, Provided by <a href="https://carto.com">CARTO</a>'
     };
   };
   
@@ -35506,10 +34798,10 @@ L.CartoDBGroupLayerBase = L.TileLayer.extend({
     debug:          false,
     visible:        true,
     added:          false,
-    tiler_domain:   "cartodb.com",
+    tiler_domain:   "carto.com",
     tiler_port:     "80",
     tiler_protocol: "http",
-    sql_api_domain:     "cartodb.com",
+    sql_api_domain:     "carto.com",
     sql_api_port:       "80",
     sql_api_protocol:   "http",
     maxZoom: 30, // default leaflet zoom level for a layers is 18, raise it
@@ -35828,7 +35120,6 @@ function layerView(base) {
       var eventTimeout = -1;
 
       opts.featureOver  = function(e, latlon, pxPos, data, layer) {
-        this.layer = layer;
         if (!hovers[layer]) {
           self.trigger('layerenter', e, latlon, pxPos, data, layer);
         }
@@ -35840,9 +35131,6 @@ function layerView(base) {
         if (e.timeStamp === previousEvent) {
           clearTimeout(eventTimeout);
         }
-
-        table.mapTab.setTooltipLayer(layer);
-
         eventTimeout = setTimeout(function() {
           self.trigger('mouseover', e, latlon, pxPos, data, layer);
           self.trigger('layermouseover', e, latlon, pxPos, data, layer);
@@ -35858,16 +35146,12 @@ function layerView(base) {
         hovers[layer] = 0;
         if(!_.any(hovers)) {
           self.trigger('mouseout');
-
-          _featureOut  && _featureOut.apply(this, arguments);
-          self.featureOut  && self.featureOut.apply(self, arguments);
         }
-        
+        _featureOut  && _featureOut.apply(this, arguments);
+        self.featureOut  && self.featureOut.apply(self, arguments);
       };
 
       opts.featureClick  = _.debounce(function() {
-        table.mapTab.setInfowindowLayer(this.layer);
-
         _featureClick  && _featureClick.apply(self, arguments);
         self.featureClick  && self.featureClick.apply(self, arguments);
       }, 10);
@@ -36932,10 +36216,10 @@ var default_options = {
   debug:          false,
   visible:        true,
   added:          false,
-  tiler_domain:   "cartodb.com",
+  tiler_domain:   "carto.com",
   tiler_port:     "80",
   tiler_protocol: "http",
-  sql_api_domain:     "cartodb.com",
+  sql_api_domain:     "carto.com",
   sql_api_port:       "80",
   sql_api_protocol:   "http",
   extra_params:   {
@@ -39484,7 +38768,14 @@ var Vis = cdb.core.View.extend({
     this._applyOptions(data, options);
 
     // to know if the logo is enabled search in the overlays and see if logo overlay is included and is shown
-    var has_logo_overlay = !!_.find(data.overlays, function(o) { return o.type === 'logo' && o.options.display; });
+    var has_logo_overlay = !!_.find(data.overlays, function(o) {
+      // display option is not implemented for builder, if type logo is present just it
+      if (o.options == null) {
+        return (o.type === 'logo');
+      }
+
+      return o.type === 'logo' && o.options.display;
+    });
 
     this.cartodb_logo = (options.cartodb_logo !== undefined) ? options.cartodb_logo: has_logo_overlay;
 
@@ -40266,9 +39557,9 @@ var Vis = cdb.core.View.extend({
     var domain = attrs.sql_api_domain + (port ? ':' + port: '')
     var protocol = attrs.sql_api_protocol;
     var version = 'v1';
-    if (domain.indexOf('cartodb.com') !== -1) {
+    if (domain.indexOf('carto.com') !== -1) {
       protocol = 'http';
-      domain = "cartodb.com";
+      domain = "carto.com";
       version = 'v2';
     }
 
@@ -40772,7 +40063,7 @@ cdb.vis.Vis = Vis;
       center: [0, 0],
       size:  [320, 240],
       tiler_port: 80,
-      tiler_domain: "cartodb.com"
+      tiler_domain: "carto.com"
     };
 
   };
@@ -41408,7 +40699,6 @@ cdb.vis.Overlay.register('header', function(data, vis) {
     model: new cdb.core.Model(options),
     transitions: data.transitions,
     slides: vis.slides,
-    style: options.style,
     template: template
   });
 
@@ -41631,37 +40921,6 @@ cdb.vis.Overlay.register('fullscreen', function(data, vis) {
 
 });
 
-cdb.vis.Overlay.register('inset_map', function(data, vis) {
-    var options = cleanupPositioning(vis, data.options);
-
-    var widget = new cdb.geo.ui.InsetMap({
-        vis: vis,
-        map: vis.map,
-        mapView: vis.mapView,
-        model: new cdb.core.Model(options)
-    });
-    return widget.render();
-
-    function cleanupPositioning(vis, options) {
-      var overrides = _.extend({}, options);
-      if (options.xPosition === 'right' && options.yPosition === 'bottom') {
-        // Shift up to match legend placement on public map
-        overrides.y = options.y + 14;
-      } else if (options.xPosition === 'left' && options.yPosition === 'bottom') {
-        // Shift into corner, there are no map controls in this corner on public maps
-        overrides.x = 10;
-        overrides.y = 10;
-      } else if (options.yPosition === 'top') {
-        // Shift down if header, positioning of description appears to be accounted for
-        var header = vis.overlayModels.find(function (model) { return model.get('type') === 'header'; });
-        if (header) {
-          overrides.y = options.y + 10;
-        }
-      }
-      return overrides;
-    }
-});
-
 // share content
 cdb.vis.Overlay.register('share', function(data, vis) {
 
@@ -41870,7 +41129,7 @@ Layers.register('torque', function(vis, data) {
   normalizeOptions(vis, data);
   // default is https
   if(vis.https) {
-    if(data.sql_api_domain && data.sql_api_domain.indexOf('cartodb.com') !== -1) {
+    if(data.sql_api_domain && data.sql_api_domain.indexOf('carto.com') !== -1) {
       data.sql_api_protocol = 'https';
       data.sql_api_port = 443;
       data.tiler_protocol = 'https';
@@ -41906,7 +41165,7 @@ Layers.register('torque', function(vis, data) {
    * compose cartodb url
    */
   function cartodbUrl(opts) {
-    var host = opts.host || 'cartodb.com';
+    var host = opts.host || 'carto.com';
     var protocol = opts.protocol || 'https';
     return protocol + '://' + opts.user + '.' + host + '/api/v1/viz/' + opts.table + '/viz.json';
   }
@@ -42148,7 +41407,7 @@ Layers.register('torque', function(vis, data) {
       if(opts && opts.completeDomain) {
         template = opts.completeDomain;
       } else {
-        var host = opts.host || 'cartodb.com';
+        var host = opts.host || 'carto.com';
         var protocol = opts.protocol || 'https';
         template = protocol + '://{user}.' + host;
       }

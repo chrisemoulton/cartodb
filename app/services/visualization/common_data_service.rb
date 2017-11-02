@@ -23,7 +23,7 @@ module CartoDB
       end
 
       def self.configured?
-        !Cartodb.config[:common_data].nil?
+        Cartodb.get_config(:common_data, 'base_url').present?
       end
 
       # Build url for common data list endpoint. If
@@ -43,9 +43,8 @@ module CartoDB
         params[:name] = visualization_name if !visualization_name.nil?
 
         if !common_data_base_url.nil?
-          # We set user_domain to nil to avoid duplication in the url for subdomainfull urls. Ie. user.cartodb.com/u/cartodb/...
-          params[:user_domain] = nil
-          common_data_base_url + CartoDB.path(controller, 'api_v1_visualizations_index', params)
+          # We set user_domain to nil to avoid duplication in the url for subdomainfull urls. Ie. user.carto.com/u/cartodb/...
+          common_data_base_url + CartoDB.path(controller, 'api_v1_visualizations_index', {type: 'table', privacy: 'public', user_domain: nil})
         elsif !common_data_user.nil?
           CartoDB.url(controller, 'api_v1_visualizations_index', params, common_data_user)
         else
