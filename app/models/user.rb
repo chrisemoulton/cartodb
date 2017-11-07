@@ -1557,13 +1557,41 @@ class User < Sequel::Model
   # if not it get everything else but GMaps in any case GMaps and other groups can work together
   # this may have change in the future but in any case this method provides a way to abstract what
   # basemaps are active for the user
+  #
+  # Basemaps may also be filtered by profile attributes - this implementation respects such filters.
   def basemaps
     basemaps = Cartodb.config[:basemaps]
     if basemaps
-      basemaps.select { |group|
+
+      def filter_basemaps(bms, whitelisted_bms)
+        # Inner join basemaps and whitelist on category
+        common_bms = whitelisted_bms.select { |wbm| bms.key? wbm['basemapCategory'] }
+
+        # Pick specific keys from hash
+        def pick_keys(hash, keys)
+          Hash[keys.map {|k| [k, hash[k]]}
+                   .select {|k, v| v}]
+        end
+
+        # Prune basemap labels within categories
+        pruned_bm_entries = common_bms.map do |cbm|
+          category = cbm['basemapCategory']
+          [category, pick_keys(bms[category], cbm['basemapLabels'])]
+        end
+        Hash[pruned_bm_entries]
+      end
+
+      whitelisted_basemaps = profile_attributes['whitelistedBasemaps']
+
+      filtered_basemaps = whitelisted_basemaps ?
+          filter_basemaps(basemaps, whitelisted_basemaps) :
+          basemaps
+
+      filtered_basemaps.select { |group|
         g = group == 'GMaps'
         google_maps_enabled? ? g : !g
       }
+
     end
   end
 
