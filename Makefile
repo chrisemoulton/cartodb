@@ -320,7 +320,7 @@ WORKING_SPECS_carto_db_class = \
 
 CDB_PATH=lib/assets/javascripts/cdb
 
-BUNDLE_INSTALL_OPTS = BUNDLE_BUILD__FFI="--with-pkg-config=/bb/datavis/cartodb/embedded/lib/pkgconfig/"
+# BUNDLE_INSTALL_OPTS = BUNDLE_BUILD__FFI="--with-pkg-config=/bb/datavis/cartodb/embedded/lib/pkgconfig/"
 
 prepare-test-db:
 	# Else coverage reports add up and hits/line metric is invalid
