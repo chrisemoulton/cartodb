@@ -164,7 +164,7 @@ namespace :cartodb do
       ]
 
       lib_datasets.each { |dataset_name, dataset_category|
-        dataset_category = dataset_category || 'NULL'
+        dataset_category ||= 'NULL'
         sql_query = %Q[
           UPDATE visualizations SET category=#{dataset_category} WHERE name='#{dataset_name}';
           ]
