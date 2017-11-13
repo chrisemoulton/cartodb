@@ -22,7 +22,6 @@ module Carto
       uri = URI.parse(str)
 
       (uri.is_a?(URI::HTTP) || uri.is_a?(URI::FTP)) &&
-        valid_ports.include?(uri.port) &&
         !blacklisted_ip?(uri)
     rescue URI::InvalidURIError
       return false
