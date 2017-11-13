@@ -1512,7 +1512,7 @@ class Table
 
   def common_data_table_names
     if common_data_user
-      common_data_user.visualizations.where(type: 'table', privacy: 'public').map(:name)
+      common_data_user.visualizations.where(type: 'table', privacy: 'public').map(&:name)
     else
       []
     end
