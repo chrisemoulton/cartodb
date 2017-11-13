@@ -116,7 +116,7 @@ module Carto
           end
         end
 
-        if response[:visualizations].empty? && name
+        if response[:visualizations].empty? && name && common_data_user
           lib_datasets = common_data_user.visualizations.where(type: 'table', privacy: 'public', name: name).map do |v|
             VisualizationPresenter.new(v, current_viewer, self, { related: false })
               .with_presenter_cache(presenter_cache)
@@ -129,7 +129,7 @@ module Carto
           response[:visualizations] = lib_datasets
           response[:total_user_entries] = lib_datasets.count
         end
-        
+
         render_jsonp(response)
       rescue CartoDB::BoundingBoxError => e
         render_jsonp({ error: e.message }, 400)
@@ -279,7 +279,7 @@ module Carto
         only_locked = params.fetch(:locked, 'false') == 'true'
         tags = params.fetch(:tags, '').split(',')
         tags = nil if tags.empty?
-        is_common_data_user = user_id == common_data_user.id
+        is_common_data_user = common_data_user && user_id == common_data_user.id
 
         args = [user_id, user_id]
 
@@ -300,7 +300,7 @@ module Carto
           args += [tags]
         end
 
-        union_common_data = !is_common_data_user && !((types.exclude? "'remote'") || only_liked || only_locked)
+        union_common_data = !is_common_data_user && !((types.exclude? "'remote'") || only_liked || only_locked) && common_data_user
 
         if union_common_data
           if parent_category != nil

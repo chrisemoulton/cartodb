@@ -321,7 +321,12 @@ class ApplicationController < ActionController::Base
   end
 
   def common_data_user
-    @common_data_user ||= Carto::User.find_by_username(Cartodb.config[:common_data]["username"])
+    return @common_data_user if @common_data_user
+
+    common_data_config = Cartodb.config[:common_data]
+    username = common_data_config && common_data_config['username']
+
+    @common_data_user = Carto::User.find_by_username(username)
   end
 
   # current_user relies on request subdomain ALWAYS, so current_viewer will always return:

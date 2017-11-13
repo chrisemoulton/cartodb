@@ -88,6 +88,7 @@ class Api::Json::VisualizationsController < Api::ApplicationController
 
         vis_data = payload
 
+        vis_data[:category] = nil if vis_data[:category] == 'null'
         vis_data.delete(:permission) || vis_data.delete('permission')
         vis_data.delete(:permission_id)  || vis_data.delete('permission_id')
 

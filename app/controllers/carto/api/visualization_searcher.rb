@@ -60,7 +60,7 @@ module Carto
           when FILTER_SHARED_NO
             if samples
               if Cartodb.config[:map_samples] && Cartodb.config[:map_samples]["username"]
-                vqb.with_user_id(Carto::User.where(username: Cartodb.config[:map_samples]["username"]).first.id) 
+                vqb.with_user_id(Carto::User.where(username: Cartodb.config[:map_samples]["username"]).first.id)
               else
                 raise "The sample user is not setup in app_config"
               end
@@ -122,7 +122,7 @@ module Carto
         # TODO: add this assumption to a test or remove it (this is coupled to the UI)
         total_types = [(type == Carto::Visualization::TYPE_REMOTE ? Carto::Visualization::TYPE_CANONICAL : type)].compact
 
-        is_common_data_user = current_user && current_user.id == common_data_user.id
+        is_common_data_user = current_user && common_data_user && current_user.id == common_data_user.id
         types = [type].compact if types.empty?
         types.delete_if {|e| e == Carto::Visualization::TYPE_REMOTE } if is_common_data_user
         types = [Carto::Visualization::TYPE_DERIVED] if types.empty?
