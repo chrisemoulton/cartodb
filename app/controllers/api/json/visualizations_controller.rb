@@ -12,7 +12,6 @@ require_relative '../../../models/map/presenter'
 require_relative '../../../../services/named-maps-api-wrapper/lib/named-maps-wrapper/exceptions'
 require_relative '../../../../lib/static_maps_url_helper'
 require_relative '../../../../lib/cartodb/event_tracker'
-require_relative '../../../../lib/profile_attributes'
 
 class Api::Json::VisualizationsController < Api::ApplicationController
   include CartoDB
