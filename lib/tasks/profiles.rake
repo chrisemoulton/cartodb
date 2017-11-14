@@ -33,7 +33,7 @@ namespace :profiles do
     if !profiles_user
       puts "User #{user.username} not enabled for profile #{profile.name} - skipping."
     else
-      ProfilesUser.where(profile_id: profile.id, user_id: user.id).destroy
+      profiles_user.destroy
     end
   end
 end
