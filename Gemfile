@@ -1,4 +1,4 @@
-source ENV['CARTODB_GEMSOURCE'] || 'http://rubygems.org'
+source 'http://rubygems.org'
 
 gem 'rails',                   '3.2.22'
 
@@ -33,7 +33,6 @@ gem 'ejs',                     '~> 1.1.1'
 gem 'execjs',                  '~> 0.4' # Required by ejs
 
 gem 'net-ldap',                '0.11'
-gem 'net-telnet'
 gem 'ruby-saml',               '~>1.0.0'
 
 group :production, :staging do
