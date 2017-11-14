@@ -21,7 +21,7 @@ namespace :profiles do
   desc 'Disable a user for a profile by username'
   task :disable_user, [:username, :profile_name] => [:environment] do |task, args|
     raise 'Please specify the username to be disabled' if args[:username].blank?
-    raise "Please specify the profile_name for which to enable #{args[:username]}" if args[:profile_name].blank?
+    raise "Please specify the profile_name for which to disable #{args[:username]}" if args[:profile_name].blank?
 
     user = User.where(username: args[:username]).first
     raise "The username '#{args[:username]}' does not correspond to any user" if user.nil?
