@@ -233,7 +233,7 @@ class Table
       table_name, table_schema = Table.table_and_schema(t)
       unless table_schema.nil?
         owner = ::User.where(username:table_schema).first
-        unless owner.nil?
+        if owner && owner.organization && viewer_user.organization && viewer_user.organization.id == owner.organization.id
           user_id = owner.id
         end
       end
