@@ -15,7 +15,28 @@ module Carto
       query = %{select * from "#{table_name}"}
       url = sql_api_query_url(query, table_name, user_table.user, privacy(user_table), format)
       exported_file = "#{folder}/#{table_name}.#{format}"
+
       @http_client.get_file(url, exported_file, ssl_verifypeer: false, ssl_verifyhost: 0)
+
+      # Hack for Samples 2.0 - Save As
+      #   In full version we should also remove the data from the file as well.
+      #   Since we don't provide the file to the user it will be fine for first release.
+      #   However this MUST be fixed before export functionality is exposed to clients
+      if(format == "gpkg")
+        md = Carto::GpkgCartoMetadataUtil.new( geopkg_file: exported_file )
+        md.metadata = {
+          vendor: 'carto',
+          data: {
+            source: {
+              type: 'fdw',
+              configuration: {
+                parent_table: table_name
+              }
+            }
+          }
+        }.with_indifferent_access
+        md.close
+      end
     end
 
     def export_visualization_tables(visualization, user, dir, format, user_tables_ids: nil)
