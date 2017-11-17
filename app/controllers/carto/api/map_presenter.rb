@@ -5,7 +5,7 @@ module Carto
     class MapPresenter
 
       PUBLIC_VALUES = [:id, :user_id, :provider, :bounding_box_sw, :bounding_box_ne, :center, :zoom, :view_bounds_sw, 
-                       :view_bounds_ne, :legends, :scrollwheel]
+                       :view_bounds_ne, :legends, :scrollwheel, :lock_pan, :lock_zoom]
 
       def initialize(map)
         @map = map

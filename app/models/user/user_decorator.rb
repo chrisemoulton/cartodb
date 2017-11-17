@@ -80,7 +80,8 @@ module CartoDB
         avatar_url: self.avatar,
         feature_flags: self.feature_flags,
         base_url: self.public_url,
-        needs_password_confirmation: self.needs_password_confirmation?
+        needs_password_confirmation: self.needs_password_confirmation?,
+        profile_attributes: self.profile_attributes
       }
 
       if self.organization.present?

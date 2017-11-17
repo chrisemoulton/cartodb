@@ -15,7 +15,7 @@ class Api::Json::MapsController < Api::ApplicationController
       begin
         updated = @stats_aggregator.timing('save') do
           @map.update(params.slice(:provider, :bounding_box_sw, :bounding_box_ne, :center, :zoom, :table_id, \
-                                           :view_bounds_sw, :view_bounds_ne, :legends, :scrollwheel))
+                                   :view_bounds_sw, :view_bounds_ne, :legends, :scrollwheel, :lock_pan, :lock_zoom))
         end
 
         unless updated == false
