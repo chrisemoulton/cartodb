@@ -203,8 +203,8 @@ class Carto::Map < ActiveRecord::Base
     self.options ||= {}
     options[:dashboard_menu] = true if options[:dashboard_menu].nil?
     options[:layer_selector] = false if options[:layer_selector].nil?
-    options[:legends] = false if options[:legends].nil?
-    options[:scrollwheel] = true if options[:scrollwheel].nil?
+    options[:legends] = (legends || true) if options[:legends].nil?
+    options[:scrollwheel] = (scrollweel || true) if options[:scrollwheel].nil?
 
     options
   end

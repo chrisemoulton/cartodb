@@ -167,7 +167,6 @@ module CartoDB
           end
 
           # set some vars for use
-          user = ::User.where(id: data_import.user_id).first
           http_client = Carto::Http::Client.get('fdw_vis_import', log_requests: true)
 
           remote_protocol = Cartodb.config[:common_data]['protocol']
