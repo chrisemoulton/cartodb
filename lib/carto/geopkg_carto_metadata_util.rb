@@ -27,7 +27,6 @@ module Carto
 
     # Send in metadata as a hash
     def metadata=(metadata)
-      byebug
       raise ArgumentError unless metadata
 
       md = metadata.with_indifferent_access
@@ -41,6 +40,13 @@ module Carto
     # Get metadata as hash
     def metadata
       @metadata ||= { vendor: 'carto' }.with_indifferent_access
+    end
+
+    # HACK - Samples 2.0 Save As.
+    #  This does not match metadata and should potentially be placed into another utility file
+    #  or this file should be renmaed to simply GpkgCartoMetadataUtil
+    def clear_table(table_name:)
+      @db.execute "delete from #{table_name}"
     end
 
     # Commit the changes to the file

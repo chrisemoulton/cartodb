@@ -9,7 +9,7 @@ module Carto
     end
 
     # Returns the file
-    def export_table(user_table, folder, format)
+    def export_table(user_table, folder, format, is_remote)
       table_name = user_table.name
 
       query = %{select * from "#{table_name}"}
@@ -19,31 +19,55 @@ module Carto
       @http_client.get_file(url, exported_file, ssl_verifypeer: false, ssl_verifyhost: 0)
 
       # Hack for Samples 2.0 - Save As
-      #   In full version we should also remove the data from the file as well.
-      #   Since we don't provide the file to the user it will be fine for first release.
-      #   However this MUST be fixed before export functionality is exposed to clients
-      if(format == "gpkg")
-        md = Carto::GpkgCartoMetadataUtil.new( geopkg_file: exported_file )
-        md.metadata = {
-          vendor: 'carto',
-          data: {
-            source: {
-              type: 'fdw',
-              configuration: {
-                parent_table: table_name
+      if(format == 'gpkg')
+        # Verify if the data is remote or if it is local
+        if(is_remote)
+          Carto::GpkgCartoMetadataUtil.open( geopkg_file: exported_file ) do |md|
+            md.metadata = { 
+              vendor: 'carto',
+              data: {
+                source: {
+                  type: 'fdw',
+                  configuration: {
+                    parent_table: table_name
+                  }
+                }
               }
-            }
-          }
-        }.with_indifferent_access
-        md.close
+            }.with_indifferent_access
+            
+            # Clear the data
+            md.clear_table(table_name: table_name)
+          end
+          
+        end
       end
     end
 
     def export_visualization_tables(visualization, user, dir, format, user_tables_ids: nil)
-      visualization.
+      # Get all synchronizations
+      synchronizations = visualization.related_canonical_visualizations.
+        map { |v| v.synchronization }.
+        select {|s| !s.nil? }
+      
+      # Get all tables
+      tables = visualization.
         related_tables_readable_by(user).
         select { |ut| user_tables_ids.nil? || user_tables_ids.include?(ut.id) }.
-        map { |ut| export_table(ut, dir, format) }
+        map do |ut| 
+          # We will do inefficient array search for now since the array length should be 
+          #    no longer than 8 (total number of allowed layers).  Plus this logic
+          #    will change from the hack for Sample 2.0 Save As to full solution 
+          #    in the future
+          
+          # Find table in synchronizations
+          is_remote = false
+          for s in synchronizations
+            if(ut.name == s.name)
+              is_remote = true if s.service_name == 'connector'
+            end
+          end
+          export_table(ut, dir, format, is_remote)
+        end
     end
 
     private
