@@ -248,7 +248,6 @@ module CartoDB
             @downloader.run(available_quota)
             return self unless remote_data_updated?
           end
-
           log.append "Starting import for #{@downloader.source_file.fullpath}"
           log.store   # Checkpoint-save
 
@@ -285,9 +284,9 @@ module CartoDB
                 md = Carto::GpkgCartoMetadataUtil.new( geopkg_file: source_file.fullpath )
 
                 # Check if FDW
-                if(md.metadata.has_key?('data') and
-                   md.metadata['data'].has_key?('source') and
-                   md.metadata['data']['source'].has_key?('type') and
+                if(md.metadata.has_key?('data') &&
+                   md.metadata['data'].has_key?('source') &&
+                   md.metadata['data']['source'].has_key?('type') &&
                    md.metadata['data']['source']['type'] == 'fdw')
 
                   job.log "FDW gpkg detected.  Setting up foreign tables"
