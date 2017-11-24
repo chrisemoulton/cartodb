@@ -81,6 +81,7 @@ Development
 * Adds library to read/write metadata to .carto.gpkg files. (#12546)
 
 ### Bug fixes
+* Fixes image export in editor (#13089)
 * Fixed layers order when creating a new layer dragging from a compound analysis (#11827)
 * Fixed problem after filtering a widget, where style pane was not working (#11819)
 * Fixed problem removing a layer within the proper layer is throwing a JS error (#11803)
