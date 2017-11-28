@@ -299,6 +299,7 @@ module CartoDB
                     log: @log
                   )
                   temp_connector.run(&@tracker)
+                  @results.concat( temp_connector.results )
 
                   # For continuity let's add stats
                   import_stats = {}

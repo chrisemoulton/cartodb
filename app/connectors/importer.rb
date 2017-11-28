@@ -75,6 +75,10 @@ module CartoDB
 
         if runner.instance_of? CartoDB::Importer2::CDBDataLibraryConnector
           name = result.name
+        # HACK - Samples 2.0 Save As - The actual runner of some tables are hidden because they arecreated under the scenes
+        #  Longer term a new runner should be created and additional info needs to be passed up
+        elsif result.schema != ORIGIN_SCHEMA
+          name = result.name
         else
           # Sanitizing table name if it corresponds with a PostgreSQL reseved word
           result.name = Carto::DB::Sanitize.sanitize_identifier(result.name)
@@ -343,8 +347,15 @@ module CartoDB
       end
 
       def persist_metadata(result, name, data_import_id)
-        table_registrar.register(name, data_import_id)
-        @table = table_registrar.table
+        # HACK - Samples 2.0 Save As
+        if result.schema != ORIGIN_SCHEMA
+          registrar = CartoDB::TableRegistrar.new(table_registrar.user, ::FDWTable)
+          registrar.register(name, data_import_id)
+          @table = registrar.table
+        else
+          table_registrar.register(name, data_import_id)
+          @table = table_registrar.table
+        end
         @imported_table_visualization_ids << @table.table_visualization.id
         BoundingBoxHelper.update_visualizations_bbox(table)
         self
