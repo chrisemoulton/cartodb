@@ -10,7 +10,7 @@ cartodb_errors:
   file_error:
     code: 2
     message: The file you are trying to upload has an invalid format
-    hint: "Please note that supported formats are: CSV, XLS, SHP & ZIP."
+    hint: "Please note that supported formats are: CSV, XLS, SHP & ZIP"
   geometries_error:
     code: 3
     message: An error has occurred when importing geometry
@@ -18,7 +18,7 @@ cartodb_errors:
   url_error:
     code: 4
     message: An error has occurred when importing a URL
-    hint: "Please note that supported formats are: CSV, XLS, SHP & ZIP."
+    hint: "Please note that supported formats are: CSV, XLS, SHP & ZIP"
   table_copy_error:
     code: 5
     message: Error while duplicating table
