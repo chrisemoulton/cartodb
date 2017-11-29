@@ -31,6 +31,21 @@ module Carto
       ensure_folder(exporter_config['exporter_temporal_folder'] || DEFAULT_EXPORTER_TMP_FOLDER)
     end
 
+    def rename_url_to_s3proxy(s3_proxy:, uri:)
+       # Change the base url to match the proxy
+       https_pos = uri.index('https')
+       prefix = 'http://'
+       if https_pos
+         prefix = 'https://'
+       end
+       rv = uri.gsub(/^https?:\/\/[\w\.\:]+\//, '')
+       rv = prefix + s3_proxy + '/' + rv
+       # Remove any query parameters (items after '?')
+       pos = rv.index('?')
+
+       rv[0, pos]
+    end
+
     def run_export!(file_upload_helper: default_file_upload_helper, download_path: nil)
       logger = Carto::Log.new(type: 'visualization_export')
 
@@ -58,8 +73,15 @@ module Carto
 
       if results[:file_uri].present?
         logger.append("By file_upload_helper: #{results[:file_uri]}, #{filepath}, (ignored: #{results[:file_path]})")
-        export_url = results[:file_uri]
-        export_file = filepath
+        if s3_config['s3_proxy'].present?
+          logger.append('s3_proxy detected...changing the url')
+          export_url = rename_url_to_s3proxy(s3_proxy: s3_config['s3_proxy'], uri: results[:file_uri])
+          logger.append("url changed to #{export_url}")
+          export_file = filepath
+        else
+          export_url = results[:file_uri]
+          export_file = filepath
+        end
       else
         logger.append("Ad-hoc export download: #{results[:file_path]} (ignored: #{filepath})")
         export_url = download_path
