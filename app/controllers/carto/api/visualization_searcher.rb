@@ -50,10 +50,7 @@ module Carto
         end
 
         if current_user
-          samples_user_id = nil
-          if samples && Cartodb.config[:map_samples] && Cartodb.config[:map_samples]["username"]
-            samples_user_id = Carto::User.where(username: Cartodb.config[:map_samples]["username"]).first.id
-          end
+          samples_user_id = sample_maps_user.id if samples && sample_maps_user
 
           if only_liked
             vqb.with_liked_by_user_id(samples_user_id || current_user.id)
@@ -64,8 +61,8 @@ module Carto
             vqb.with_owned_by_or_shared_with_user_id(current_user.id)
           when FILTER_SHARED_NO
             if samples
-              if Cartodb.config[:map_samples] && Cartodb.config[:map_samples]["username"]
-                vqb.with_user_id(Carto::User.where(username: Cartodb.config[:map_samples]["username"]).first.id)
+              if samples_user_id
+                vqb.with_user_id(samples_user_id)
               else
                 raise "The sample user is not setup in app_config"
               end
