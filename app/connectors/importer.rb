@@ -348,7 +348,7 @@ module CartoDB
 
       def persist_metadata(result, name, data_import_id)
         # HACK - Samples 2.0 Save As
-        if result.schema != ORIGIN_SCHEMA && File.extname(@runner.downloader.source_file.filename) == '.carto'
+        if result.schema != ORIGIN_SCHEMA && !runner.instance_of?(CartoDB::Importer2::CDBDataLibraryConnector) && File.extname(@runner.downloader.source_file.filename) == '.carto'
           # Check if table already exists
           if !Carto::UserTable.where(user_id: table_registrar.user.id, name: name).exists?
             registrar = CartoDB::TableRegistrar.new(table_registrar.user, ::FDWTable)
