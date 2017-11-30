@@ -280,7 +280,7 @@ module CartoDB
               log.append "Filename: #{source_file.fullpath} Size (bytes): #{source_file.size}"
 
               # Hack for Samples 2.0 Save As - Tech debt to clean up with more elegant solution
-              if(source_file.extension.split('.').last == 'gpkg')
+              if(source_file.extension == '.gpkg' && File.extname(source_file.name) == '.carto')
                 md = Carto::GpkgCartoMetadataUtil.new( geopkg_file: source_file.fullpath )
 
                 # Check if FDW

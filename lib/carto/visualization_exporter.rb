@@ -38,7 +38,11 @@ module Carto
             # Clear the data
             md.clear_table(table_name: table_name)
           end
+          # Rename the file to .carto.gpkg to designate it has metadata
+          # We do not immediately write to .carto.gpkg because the SQL api
+          # does not honor .carto.gpkg format at this time
           
+          File.rename(exported_file, "#{folder}/#{table_name}.carto.gpkg")
         end
       end
     end
