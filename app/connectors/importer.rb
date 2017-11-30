@@ -350,7 +350,7 @@ module CartoDB
         # HACK - Samples 2.0 Save As
         if result.schema != ORIGIN_SCHEMA && !runner.instance_of?(CartoDB::Importer2::CDBDataLibraryConnector) && File.extname(@runner.downloader.source_file.filename) == '.carto'
           # Check if table already exists
-          if !Carto::UserTable.where(user_id: table_registrar.user.id, name: name).exists?
+          unless Carto::UserTable.where(user_id: table_registrar.user.id, name: name).exists?
             registrar = CartoDB::TableRegistrar.new(table_registrar.user, ::FDWTable)
             registrar.register(name, data_import_id)
             @table = registrar.table
