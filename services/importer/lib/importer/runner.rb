@@ -308,8 +308,9 @@ module CartoDB
                   import_stats[:size] = source_file.size
                   @stats << import_stats
                 else
-                  import_stats = execute_import(source_file, @downloader)
-                  @stats << import_stats
+                  # assume if the file is .carto.gpkg then it must have the
+                  # metadata we are looking for.
+                  raise LoadError.new "ERROR Invalid metadata in #{source_file.fullpath}."
                 end
               else
                 import_stats = execute_import(source_file, @downloader)
