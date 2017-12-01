@@ -54,11 +54,8 @@ module Carto
         select {|s| !s.nil? }
       
       # Get all tables
-      #tables = visualization.
-      #  related_tables_readable_by(user).
-      #  select { |ut| user_tables_ids.nil? || user_tables_ids.include?(ut.id) }.
       tables = visualization.
-        related_tables.
+        related_tables_readable_by(user).
         select { |ut| user_tables_ids.nil? || user_tables_ids.include?(ut.id) }.
         map do |ut| 
           # We will do inefficient array search for now since the array length should be 
@@ -74,11 +71,7 @@ module Carto
             end
           end
 
-          # Always export remote datasets and public.
-          # Anything else should be excluded.
-          if is_remote || ut.public?
-              export_table(ut, dir, format, is_remote)
-          end
+          export_table(ut, dir, format, is_remote)
         end
     end
 
