@@ -55,7 +55,7 @@ module Carto
       
       # Get all tables
       tables = visualization.
-        related_tables_readable_by(user).
+        related_tables_and_common_shared_data_readable_by(user).
         select { |ut| user_tables_ids.nil? || user_tables_ids.include?(ut.id) }.
         map do |ut| 
           # We will do inefficient array search for now since the array length should be 

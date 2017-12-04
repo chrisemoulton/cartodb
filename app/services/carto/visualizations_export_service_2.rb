@@ -222,7 +222,7 @@ module Carto
     end
 
     def export_visualization(visualization, user)
-      layers = visualization.layers_with_data_readable_by(user)
+      layers = visualization.layers_with_data_and_common_shared_data_readable_by(user)
       active_layer_id = visualization.active_layer_id
       layer_exports = layers.map do |layer|
         export_layer(layer, active_layer: active_layer_id == layer.id)

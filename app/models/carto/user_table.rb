@@ -138,6 +138,10 @@ module Carto
     end
 
     def readable_by?(user)
+      !private? || is_owner?(user) || visualization_readable_by?(user)
+    end
+
+    def readable_with_common_shared_data_by?(user)
       !private? || is_owner?(user) || visualization_readable_by?(user) || common_shared_dataset?
     end
 
