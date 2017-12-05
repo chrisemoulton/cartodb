@@ -281,6 +281,7 @@ module Carto
         tags = params.fetch(:tags, '').split(',')
         tags = nil if tags.empty?
         is_common_data_user = common_data_user && user_id == common_data_user.id
+        is_maps = types.count == 1 && types[0] == "'derived'"
 
         args = [user_id, user_id]
 
@@ -288,6 +289,10 @@ module Carto
         likedCondition = only_liked ? 'WHERE likes > 0' : ''
         lockedCondition = only_locked ? 'AND v.locked=true' : ''
         categoryCondition = ''
+        if is_maps
+          user_join = 'LEFT JOIN users AS u ON u.id=v.user_id'
+          auth_tokens_column = ', ARRAY[u.auth_token] AS auth_tokens'
+        end
         parent_category = params.fetch(:parent_category, nil)
         if parent_category != nil
           categoryCondition = "AND (v.category = ? OR v.category = ANY(get_viz_child_category_ids(?)))"
@@ -323,13 +328,14 @@ module Carto
         query = "
             SELECT * FROM (
               SELECT results.*, (SELECT COUNT(*) FROM likes WHERE actor=? AND subject=results.id) AS likes FROM (
-                SELECT v.id, v.type, false AS needs_cd_import, v.name, v.display_name, v.description, v.tags, v.category, v.source, v.updated_at, v.locked, upper(v.privacy) AS privacy, ut.id AS table_id, ut.name_alias, edis.id IS NOT NULL AS from_external_source
+                SELECT v.id, v.type, false AS needs_cd_import, v.name, v.display_name, v.description, v.tags, v.category, v.source, v.updated_at, v.locked, upper(v.privacy) AS privacy, ut.id AS table_id, ut.name_alias, edis.id IS NOT NULL AS from_external_source #{auth_tokens_column}
                   FROM visualizations AS v
                       LEFT JOIN external_sources AS es ON es.visualization_id = v.id
                       LEFT JOIN visualizations AS v2 ON v2.user_id=v.user_id AND v.type='remote' AND v2.type='table' AND v2.name=v.name
                       LEFT JOIN user_tables AS ut ON ut.map_id=v.map_id
                       LEFT JOIN synchronizations AS s ON s.visualization_id = v.id
                       LEFT JOIN external_data_imports AS edis ON edis.synchronization_id = s.id
+                      #{user_join}
                   WHERE v2.id IS NULL AND v.user_id=? AND v.type IN (#{typeList}) #{lockedCondition} #{sharedEmptyDatasetCondition} #{categoryCondition} #{tagCondition}
                 ) AS results
             ) AS results2
