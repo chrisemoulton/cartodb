@@ -89,7 +89,7 @@ namespace :cartodb do
       end
     end
 
-    desc "Initialize Visualization Categories"
+    desc "Initialize Dataset Categories"
     task :init_dataset_categories => [:environment] do
       forced_reset = ENV['forced_reset'] == "true"
 
@@ -146,6 +146,27 @@ namespace :cartodb do
         Rails::Sequel.connection.run("ALTER TABLE visualizations ADD CONSTRAINT visualizations_category_fkey
             FOREIGN KEY (category) REFERENCES visualization_categories(id);")
       end
+    end
+
+    desc "Initialize Sample Maps Categories"
+    task :init_sample_maps_categories => [:environment] do
+      Rails::Sequel.connection.run("UPDATE visualization_categories SET name='Sample Maps' WHERE type=2 AND name='Maps';")
+
+      Rails::Sequel.connection.run("INSERT INTO visualization_categories (id, type, name, parent_id, list_order) VALUES
+          (32, 2, 'Environmental Risk', 2, 0),
+          (33, 2, 'Merger Impact', 2, 0),
+          (34, 2, 'Commodities', 2, 0),
+            (35, 2, 'Agriculture', 34, 0),
+            (36, 2, 'Coal', 34, 0),
+            (37, 2, 'Metals', 34, 0),
+            (38, 2, 'Natural Gas', 34, 0),
+            (39, 2, 'Oil', 34, 0),
+            (40, 2, 'Power', 34, 0),
+            (41, 2, 'Renewables', 34, 0),
+          (42, 2, 'Market Share', 2, 0),
+          (43, 2, 'Geographic Exposure', 2, 0),
+          (44, 2, 'Political', 2, 0);
+      ")
     end
 
     desc "Sync category set in Data Library for all datasets to all users"
