@@ -122,7 +122,8 @@ $cHighlight-mainHover: rgba(#007FBD, 1);
 .Button--toolbar {
   height: 27px;
   line-height: 25px;
-  margin-right: 4px;
+  padding: 0px 12px;
+  margin-right: 6px;
 }
 
 .Button--toolbar-negative {

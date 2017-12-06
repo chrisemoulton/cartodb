@@ -7,6 +7,6 @@ Sequel.migration do
 
   down do
     execute "ALTER TABLE visualizations DROP CONSTRAINT visualizations_category_fkey;"
-    execute "ALTER TABLE visualizations DROP CONSTRAINT unique_id;"
+    execute "ALTER TABLE visualization_categories DROP CONSTRAINT unique_id;"
   end
 end

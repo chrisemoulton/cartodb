@@ -362,8 +362,18 @@ module CartoDB
       end
 
       def common_data_table(table_name)
-        @common_data_user ||= Carto::User.find_by_username(Cartodb.config[:common_data]["username"])
-        @common_data_user.visualizations.where(privacy: 'public', type: 'table', name: table_name).first
+        if common_data_user
+          common_data_user.visualizations.where(privacy: 'public', type: 'table', name: table_name).first
+        end
+      end
+
+      def common_data_user
+        return @common_data_user if @common_data_user
+
+        common_data_config = Cartodb.config[:common_data]
+        username = common_data_config && common_data_config['username']
+
+        @common_data_user = Carto::User.find_by_username(username)
       end
 
       attr_reader :runner, :table_registrar, :quota_checker, :database, :data_import_id

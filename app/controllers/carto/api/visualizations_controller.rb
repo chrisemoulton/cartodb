@@ -116,7 +116,7 @@ module Carto
           end
         end
 
-        if response[:visualizations].empty? && name
+        if response[:visualizations].empty? && name && common_data_user
           lib_datasets = common_data_user.visualizations.where(type: 'table', privacy: 'public', name: name).map do |v|
             VisualizationPresenter.new(v, current_viewer, self, { related: false })
               .with_presenter_cache(presenter_cache)
@@ -129,7 +129,7 @@ module Carto
           response[:visualizations] = lib_datasets
           response[:total_user_entries] = lib_datasets.count
         end
-        
+
         render_jsonp(response)
       rescue CartoDB::BoundingBoxError => e
         render_jsonp({ error: e.message }, 400)
@@ -279,7 +279,7 @@ module Carto
         only_locked = params.fetch(:locked, 'false') == 'true'
         tags = params.fetch(:tags, '').split(',')
         tags = nil if tags.empty?
-        is_common_data_user = user_id == common_data_user.id
+        is_common_data_user = common_data_user && user_id == common_data_user.id
 
         args = [user_id, user_id]
 
@@ -300,7 +300,7 @@ module Carto
           args += [tags]
         end
 
-        union_common_data = !is_common_data_user && !((types.exclude? "'remote'") || only_liked || only_locked)
+        union_common_data = !is_common_data_user && !((types.exclude? "'remote'") || only_liked || only_locked) && common_data_user
 
         if union_common_data
           if parent_category != nil
@@ -354,12 +354,16 @@ module Carto
         type = params.fetch(:type, 'datasets')
         typeList = (type == 'datasets') ? "'table','remote'" : "'derived'"
         categoryType = (type == 'datasets') ? 1 : 2
+        samples_user_id = sample_maps_user.id if categoryType == 2 && sample_maps_user
+        sample_type_counts = Object.new
 
         is_common_data_user = user_id == common_data_user.id
         union_common_data = !is_common_data_user && (type == 'datasets')
 
         sharedEmptyDatasetCondition = is_common_data_user ? "" : "AND v.name <> '#{Cartodb.config[:shared_empty_dataset_name]}'"
+        lockedCondition = samples_user_id ? "AND v.locked=true" : ""
 
+        #type counts
         query = "SELECT
               COUNT(*) AS all,
               SUM(CASE WHEN likes > 0 THEN 1 ELSE 0 END) AS liked,
@@ -386,10 +390,29 @@ module Carto
         query += ") AS results2"
         type_counts = Sequel::Model.db.fetch(query, *args).all
 
+        #sample maps counts
+        if samples_user_id
+          user_id = samples_user_id
+          query = "SELECT
+                COUNT(*) AS all,
+                SUM(CASE WHEN likes > 0 THEN 1 ELSE 0 END) AS liked
+              FROM (
+                SELECT results.*, (SELECT COUNT(*) FROM likes WHERE actor=? AND subject=results.id) AS likes FROM (
+                  SELECT v.id, v.type, v.category, v.locked
+                    FROM visualizations AS v
+                    WHERE v.user_id=? AND v.type IN (#{typeList}) AND v.locked=true
+                  ) AS results"
+          args = [user_id, user_id]
+
+          query += ") AS results2"
+          sample_type_counts = Sequel::Model.db.fetch(query, *args).all[0]
+        end
+
+        #category counts
         query = "SELECT categories.id, categories.parent_id, (
               (SELECT COUNT(*) FROM visualizations AS v
                   LEFT JOIN visualizations AS v2 ON v2.user_id=v.user_id AND v.type='remote' AND v2.type='table' AND v2.name=v.name
-                WHERE v2.id IS NULL AND v.user_id=? AND v.type IN (#{typeList}) #{sharedEmptyDatasetCondition} AND v.category=categories.id) + "
+                WHERE v2.id IS NULL AND v.user_id=? AND v.type IN (#{typeList}) #{sharedEmptyDatasetCondition} #{lockedCondition} AND v.category=categories.id) + "
 
         if union_common_data
           query += "(SELECT COUNT(*) FROM visualizations AS v
@@ -418,7 +441,7 @@ module Carto
           end
         end
 
-        render :json => '{"types":' + type_counts[0].to_json + ' ,"categories":' + category_counts.to_json + '}'
+        render :json => '{"types":' + type_counts[0].to_json + ', "sample_types":' + sample_type_counts.to_json + ' ,"categories":' + category_counts.to_json + '}'
       end
 
 
