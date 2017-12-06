@@ -829,6 +829,10 @@ describe Carto::VisualizationsExportService2 do
       include CartoDB::Factories
 
       before(:all) do
+        # Need to up the quota because we need to have enough room for 6 different users
+        @organization.quota_in_bytes = 3145728000 # 262144000 * 12
+        @organization.save
+
         @helper = TestUserFactory.new
         @org_user_with_dash_1 = @helper.create_test_user(unique_name('user-1-'), @organization)
         @org_user_with_dash_2 = @helper.create_test_user(unique_name('user-2-'), @organization)
