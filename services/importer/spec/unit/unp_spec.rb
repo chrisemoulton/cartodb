@@ -1,5 +1,6 @@
 # encoding: utf-8
 require 'fileutils'
+require 'securerandom'
 require_relative '../../lib/importer/unp'
 require_relative '../../../../spec/rspec_configuration.rb'
 
@@ -69,14 +70,25 @@ describe Unp do
   end
 
   describe '#crawl' do
+    before(:all) do
+      # Make carto tmp directory
+      @tmp_dir = "/var/tmp/carto-#{SecureRandom.uuid}"
+      FileUtils.mkdir_p(@tmp_dir)
+    end
+
+    after(:all) do
+      # Clean the carto tmp directory
+      FileUtils.rm_r(@tmp_dir)
+    end
+
     it 'returns a list of full paths for files in the directory' do
-      fixture1  = '/var/tmp/bogus1.csv'
-      fixture2  = '/var/tmp/bogus2.csv'
+      fixture1  = "#{@tmp_dir}/bogus1.csv"
+      fixture2  = "#{@tmp_dir}/bogus2.csv"
       FileUtils.touch(fixture1)
       FileUtils.touch(fixture2)
 
       unp       = Unp.new
-      files     = unp.crawl('/var/tmp')
+      files     = unp.crawl(@tmp_dir)
 
       files.should include(fixture1)
       files.should include(fixture2)
