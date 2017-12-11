@@ -333,7 +333,7 @@ describe Carto::Api::LayersController do
       before(:each) do
         bypass_named_maps
         delete_user_data @user
-        host! "localhost/user/#{@user.username}"
+        host! CartoDB.base_url(@user.username).sub!(/^https?\:\/\//, '')
         @table = create_table(user_id: @user.id)
         @map = create_map(user_id: @user.id, table_id: @table.id)
         @table.reload
@@ -489,7 +489,7 @@ describe Carto::Api::LayersController do
       before(:each) do
         bypass_named_maps
         delete_user_data @user
-        host! "localhost/user/#{@user.username}"
+        host! CartoDB.base_url(@user.username).sub!(/^https?\:\/\//, '')
         @table = create_table(user_id: @user.id)
       end
 
@@ -575,7 +575,7 @@ describe Carto::Api::LayersController do
       }
 
       login_as(@user, scope: @user.username)
-      host! "localhost/user/#{@user.username}"
+      host! CartoDB.base_url(@user.username).sub!(/^https?\:\/\//, '')
       post api_v1_visualizations_create_url(api_key: @api_key), payload.to_json, @headers do |response|
         response.status.should eq 200
         @visualization_data = JSON.parse(response.body)
@@ -716,7 +716,7 @@ describe Carto::Api::LayersController do
       end
 
       login_as(user_3, scope: user_3.username)
-      host! "localhost/user/#{user_3.username}"
+      host! CartoDB.base_url(user_3.username).sub!(/^https?\:\/\//, '')
       get_json api_v1_maps_layers_index_url(user_domain: user_3.username, map_id: table.map.id) do |response|
         response.status.should == 404
       end
@@ -727,7 +727,7 @@ describe Carto::Api::LayersController do
     before(:all) do
       @user = create_user
 
-      host! "localhost/user/#{@user.username}"
+      host! CartoDB.base_url(@user.username).sub!(/^https?\:\/\//, '')
     end
 
     before(:each) do
