@@ -36,7 +36,7 @@ describe Api::Json::SynchronizationsController do
     @headers = {
       'CONTENT_TYPE' => 'application/json'
     }
-    host! "localhost/user/#{@user.username}"
+    host! CartoDB.base_url(@user.username).sub!(/^https?\:\/\//, '')
   end
 
   after(:all) do
