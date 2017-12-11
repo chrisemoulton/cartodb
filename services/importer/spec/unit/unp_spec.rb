@@ -82,19 +82,18 @@ describe Unp do
     end
 
     it 'returns a list of full paths for files in the directory' do
-      fixture1  = "#{@tmp_dir}/bogus1.csv"
-      fixture2  = "#{@tmp_dir}/bogus2.csv"
-      FileUtils.touch(fixture1)
-      FileUtils.touch(fixture2)
+      fixture1  = Tempfile.new('bogus1.csv', @tmp_dir)
+      fixture2  = Tempfile.new('bogus2.csv', @tmp_dir)
+      begin
+        unp       = Unp.new
+        files     = unp.crawl(@tmp_dir)
 
-      unp       = Unp.new
-      files     = unp.crawl(@tmp_dir)
-
-      files.should include(fixture1)
-      files.should include(fixture2)
-
-      FileUtils.rm(fixture1)
-      FileUtils.rm(fixture2)
+        files.should include(fixture1.path)
+        files.should include(fixture2.path)
+      ensure
+        fixture1.close!
+        fixture2.close!
+      end
     end
   end
 
