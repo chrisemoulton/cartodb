@@ -14,7 +14,7 @@ describe Carto::Api::ImportsController do
 
   before(:all) do
     @user = FactoryGirl.create(:valid_user)
-    host! CartoDB.base_url(@user.username).sub!(/^https?\:\/\//, '')
+    host! "#{@user.username}.localhost.lan"
   end
 
   after(:all) do

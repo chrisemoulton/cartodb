@@ -135,8 +135,7 @@ module Carto
                format: DEFAULT_EXPORT_FORMAT,
                data_exporter: DataExporter.new,
                visualization_export_service: Carto::VisualizationsExportService2.new,
-               base_dir: exporter_folder,
-               name_suffix: nil)
+               base_dir: exporter_folder)
       visualization_id = visualization.id
       export_dir = export_dir(visualization, base_dir: base_dir)
       tmp_dir = tmp_dir(visualization, parent_dir: export_dir)
@@ -149,11 +148,7 @@ module Carto
         format,
         user_tables_ids: user_tables_ids)
 
-      if name_suffix
-        visualization_json = visualization_export_service.export_visualization_json_string_with_name_suffix(visualization_id, user, name_suffix)
-      else
-        visualization_json = visualization_export_service.export_visualization_json_string(visualization_id, user)
-      end
+      visualization_json = visualization_export_service.export_visualization_json_string(visualization_id, user)
       visualization_json_file = "#{tmp_dir}/#{visualization_id}#{EXPORT_EXTENSION}"
       File.open(visualization_json_file, 'w') { |file| file.write(visualization_json) }
 

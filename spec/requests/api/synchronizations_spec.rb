@@ -36,15 +36,13 @@ describe Api::Json::SynchronizationsController do
     @headers = {
       'CONTENT_TYPE' => 'application/json'
     }
-    host! CartoDB.base_url(@user.username).sub!(/^https?\:\/\//, '')
+    host! "#{@user.username}.localhost.lan"
   end
 
   after(:all) do
     bypass_named_maps
     @user.destroy
   end
-
-  let(:params) { { :api_key => @api_key } }
 
   describe 'POST /api/v1/synchronizations' do
     it 'creates a synchronization' do
@@ -54,7 +52,7 @@ describe Api::Json::SynchronizationsController do
         url:        'http://www.foo.com'
       }
 
-      post api_v1_synchronizations_index_url(params), payload.to_json, @headers
+      post "/api/v1/synchronizations?api_key=#{@api_key}", payload.to_json, @headers
       last_response.status.should == 200
 
       response = JSON.parse(last_response.body)
@@ -69,7 +67,7 @@ describe Api::Json::SynchronizationsController do
         url: 'http://www.foo.com'
       }
 
-      post api_v1_synchronizations_index_url(params), payload.to_json, @headers
+      post "/api/v1/synchronizations?api_key=#{@api_key}", payload.to_json, @headers
       last_response.status.should eq 400
       last_response.body.to_str.should match /15 minutes/
     end
@@ -81,7 +79,7 @@ describe Api::Json::SynchronizationsController do
         url:        'http://www.foo.com'
       }
 
-      post api_v1_synchronizations_index_url(params), payload.to_json, @headers
+      post "/api/v1/synchronizations?api_key=#{@api_key}", payload.to_json, @headers
       last_response.status.should == 200
 
       response = JSON.parse(last_response.body)

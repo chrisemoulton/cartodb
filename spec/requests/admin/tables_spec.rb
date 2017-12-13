@@ -33,7 +33,7 @@ describe Admin::TablesController do
     @headers = {
       'CONTENT_TYPE'  => 'application/json',
     }
-    host! CartoDB.base_url(@user.username).sub!(/^https?\:\/\//, '')
+    host! "#{@user.username}.localhost.lan"
   end
 
   after(:all) do
@@ -46,7 +46,7 @@ describe Admin::TablesController do
     it 'returns a list of tables' do
       login_as(@user, scope: @user.username)
 
-      get dashboard_bis_url, {}, @headers
+      get "/dashboard", {}, @headers
       last_response.status.should == 200
     end
   end # GET /tables
@@ -56,7 +56,7 @@ describe Admin::TablesController do
       id = factory.id
       login_as(@user, scope: @user.username)
 
-      get public_tables_show_bis_url(id: id), {}, @headers
+      get "/tables/#{id}", {}, @headers
       last_response.status.should == 200
     end
   end # GET /tables/:id
