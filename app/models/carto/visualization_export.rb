@@ -43,12 +43,12 @@ module Carto
        rv[0, pos]
     end
 
-    def run_export!(file_upload_helper: default_file_upload_helper, download_path: nil)
+    def run_export!(file_upload_helper: default_file_upload_helper, download_path: nil, name_suffix: nil)
       logger = Carto::Log.new(type: 'visualization_export')
 
       logger.append('Exporting')
       update_attributes(state: STATE_EXPORTING, log: logger)
-      filepath = export(visualization, user, user_tables_ids: user_tables_ids)
+      filepath = export(visualization, user, user_tables_ids: user_tables_ids, name_suffix: name_suffix)
 
       logger.append('Uploading')
       update_attributes(state: STATE_UPLOADING, file: filepath)
