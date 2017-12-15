@@ -10,6 +10,12 @@ require_relative '../factories/pg_connection'
 include CartoDB::Importer2
 
 describe Ogr2ogr do
+  let(:ogr2ogr2_options) do
+    {
+      ogr2ogr_binary: Cartodb.config[:ogr2ogr]['binary']
+    }
+  end
+
   before(:all) do
     @user             = create_user
     @user.save
@@ -160,11 +166,5 @@ describe Ogr2ogr do
       @dataset.all.count.should eq 2
     end
   end
-
-  let(:ogr2ogr2_options) do
-    {
-      ogr2ogr_binary: Cartodb.config[:ogr2ogr]['binary']
-    }
-  end
-
 end
+
