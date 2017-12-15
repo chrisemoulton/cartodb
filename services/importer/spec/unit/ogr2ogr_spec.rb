@@ -120,7 +120,8 @@ describe Ogr2ogr do
   end
 
   describe '#command_output' do
-    xit 'returns stdout and stderr from ogr2ogr binary' do
+    it 'returns stdout and stderr from ogr2ogr binary' do
+      pending("ogr2ogr needs to be recompiled with updated driver")
       wrapper = CartoDB::Importer2::Ogr2ogr.new(@table_name, 'non_existent', @pg_options, nil, ogr2ogr2_options)
       wrapper.run
       wrapper.command_output.should_not eq ''
