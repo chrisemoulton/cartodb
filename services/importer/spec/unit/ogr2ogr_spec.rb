@@ -115,7 +115,6 @@ describe Ogr2ogr do
 
   describe '#command_output' do
     xit 'returns stdout and stderr from ogr2ogr binary' do
-      byebug
       wrapper = CartoDB::Importer2::Ogr2ogr.new(@table_name, 'non_existent', @pg_options, nil, ogr2ogr2_options)
       wrapper.run
       wrapper.command_output.should_not eq ''
@@ -162,7 +161,7 @@ describe Ogr2ogr do
     end
   end
 
-  def ogr2ogr2_options
+  let(:ogr2ogr2_options) do
     {
       ogr2ogr_binary: Cartodb.config[:ogr2ogr]['binary']
     }
