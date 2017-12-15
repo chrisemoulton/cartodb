@@ -147,9 +147,9 @@ module Carto
 
     def common_shared_dataset?
         di = DataImport.find_by_id(data_import_id)
-        return False unless di
+        return false unless di
         sync = Synchronization.find_by_id(di.synchronization_id)
-        return False unless sync
+        return false unless sync
         'connector' == sync.service_name
     end
 
