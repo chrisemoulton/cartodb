@@ -8,6 +8,7 @@ RSpec.configure do |c|
 end
 describe CartoDB::DataMover::ExportJob do
   before :each do
+    pending("User migration logic is not used by Bloomberg")
     bypass_named_maps
     @tmp_path = Dir.mktmpdir("mover-test") + '/'
   end
@@ -53,6 +54,7 @@ describe CartoDB::DataMover::ExportJob do
 
   describe "a standalone user which has moved to an organization" do
     before(:all) do
+      pending("User migration logic is not used by Bloomberg")
       @org = create_user_mover_test_organization
     end
 
