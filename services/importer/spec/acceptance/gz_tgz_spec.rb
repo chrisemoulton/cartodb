@@ -17,6 +17,12 @@ describe 'gz and tgz regression tests' do
   include_context "cdb_importer schema"
   include_context "no stats"
 
+  let :ogr2ogr2_options do
+    {
+      ogr2ogr_binary: Cartodb.config[:ogr2ogr]['binary']
+    }
+  end
+
   before(:all) do
     @user = create_user
     @user.save
@@ -35,6 +41,7 @@ describe 'gz and tgz regression tests' do
                                log: CartoDB::Importer2::Doubles::Log.new(@user),
                                user: @user
                              })
+    runner.loader_options = ogr2ogr2_options
     runner.run
     runner.results.first.success?.should eq true
   end
@@ -48,6 +55,7 @@ describe 'gz and tgz regression tests' do
                                log: CartoDB::Importer2::Doubles::Log.new(@user),
                                user: @user
                              })
+    runner.loader_options = ogr2ogr2_options
     runner.run
     runner.results.first.success?.should eq true
   end
@@ -61,6 +69,7 @@ describe 'gz and tgz regression tests' do
                                log: CartoDB::Importer2::Doubles::Log.new(@user),
                                user: @user
                              })
+    runner.loader_options = ogr2ogr2_options
     runner.run
     first_import = runner.results.first.success?
     last_import = runner.results.last.success?
@@ -76,6 +85,7 @@ describe 'gz and tgz regression tests' do
                                log: CartoDB::Importer2::Doubles::Log.new(@user),
                                user: @user
                              })
+    runner.loader_options = ogr2ogr2_options
     runner.run
     runner.results.first.success?.should eq false
     runner.results.first.error_code.should eq 2002
