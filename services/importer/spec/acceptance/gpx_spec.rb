@@ -24,7 +24,7 @@ describe 'GPX regression tests' do
 
   let :ogr2ogr2_unpack_options do
     {
-      'binary' => Cartodb.config[:ogr2ogr]['binary'].split(' ').last
+      'binary' => Cartodb.config[:ogr2ogr]['binary']
     }
   end
 
