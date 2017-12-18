@@ -20,7 +20,7 @@ module CartoDB
       def initialize(source_file, temporary_directory, ogr2ogr_config = nil)
         @source_file = source_file
         @temporary_directory = temporary_directory
-        @ogr2ogr_binary = @ogr2ogr_config.nil? ? DEFAULT_OGR2OGR_BINARY : ogr2ogr_config['binary']
+        @ogr2ogr_binary = ogr2ogr_config.nil? ? DEFAULT_OGR2OGR_BINARY : ogr2ogr_config['binary']
       end
 
       def run
