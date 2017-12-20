@@ -1123,7 +1123,8 @@ describe Carto::Api::VisualizationsController do
           {}, @headers
         last_response.status.should == 200
         overlays = JSON.parse(last_response.body)
-        # One of the carto layers is hidden behind a feature flag in Bloomberg
+        # The search overlay is hidden behind a feature the bbg_pro_ui flag in Bloomberg
+        #  Therefore this value is one lower than the carto upstream unit tests
         overlays.length.should == 4
       end
 
