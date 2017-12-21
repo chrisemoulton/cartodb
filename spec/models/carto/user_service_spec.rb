@@ -69,7 +69,7 @@ describe Carto::UserService do
   end
 
   it "Tests search_path correctly set" do
-    expected_returned_normal_search_path = { search_path: "#{@user.database_schema}, cartodb, cdb_dataservices_client, public" }
+    expected_returned_normal_search_path = { search_path: "#{@user.database_schema}, cartodb, cdb_dataservices_client, \"#{Cartodb.config[:common_data]['username']}\", public" }
 
     @normal_search_path = nil
     @normal_search_path_new = nil
