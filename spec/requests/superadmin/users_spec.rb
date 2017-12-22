@@ -80,7 +80,8 @@ feature "Superadmin's users API" do
     CartoDB::UserModule::DBService.any_instance.stubs(:enable_remote_db_user).returns(true)
     post_json superadmin_users_path, { user: @user_atts }, superadmin_headers do |response|
       response.status.should == 201
-      response.body[:quota_in_bytes].should == 104857600
+      # Bloomberg - quota is different in Bloomberg's system compared to carto
+      response.body[:quota_in_bytes].should == 262144000
       response.body[:table_quota].should == 5
       response.body[:account_type].should == 'FREE'
       response.body[:private_tables_enabled].should == false
@@ -89,7 +90,8 @@ feature "Superadmin's users API" do
 
       # Double check that the user has been created properly
       user = ::User.filter(email: @user_atts[:email]).first
-      user.quota_in_bytes.should == 104857600
+      # Bloomberg - quota is different in Bloomberg's system compared to carto
+      user.quota_in_bytes.should == 262144000
       user.table_quota.should == 5
       user.account_type.should == 'FREE'
       user.private_tables_enabled.should == false
