@@ -38,7 +38,9 @@ describe Carto::Api::OverlaysController do
       existing_overlay_ids = []
       get_json overlays_url(params) do |response|
         response.status.should be_success
-        response.body.count.should eq 5 # Newly created overlays have this amount of layers
+        # The search overlay is hidden behind the bbg_pro_ui feature flag in Bloomberg
+        # Therefore this value is one lower than the carto upstream unit tests
+        response.body.count.should eq 4 # Newly created overlays have this amount of layers
         existing_overlay_ids = response.body.map { |overlay| overlay['id'] }
       end
 
