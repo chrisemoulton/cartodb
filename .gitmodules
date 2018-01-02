@@ -1,6 +1,6 @@
 [submodule "lib/assets/javascripts/cdb"]
     path = lib/assets/javascripts/cdb
-    url = https://github.com/cartodb-org/cartodb.js.git
+    url = https://bbgithub.dev.bloomberg.com/datavis-cartodb/cartodb.js.git
 [submodule "app/assets/stylesheets/old_common"]
     path = app/assets/stylesheets/old_common
     url = https://bbgithub.dev.bloomberg.com/datavis-cartodb/cartodb.css.git

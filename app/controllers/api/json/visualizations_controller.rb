@@ -455,6 +455,68 @@ class Api::Json::VisualizationsController < Api::ApplicationController
     end
   end
 
+  def setup_new_visualization(vis_data)
+    vis = nil
+
+    vis_data = add_default_privacy(vis_data)
+
+    if params[:source_visualization_id]
+      source,  = @stats_aggregator.timing('locate') do
+        locator.get(params.fetch(:source_visualization_id), CartoDB.extract_subdomain(request))
+      end
+      return(head 403) if source.nil? || source.kind == Visualization::Member::KIND_RASTER
+
+      copy_overlays = params.fetch(:copy_overlays, true)
+      copy_layers = params.fetch(:copy_layers, true)
+
+      additional_fields = {
+        type:       params.fetch(:type, Visualization::Member::TYPE_DERIVED),
+        parent_id:  params.fetch(:parent_id, nil)
+      }
+
+      vis = @stats_aggregator.timing('copy') do
+          Visualization::Copier.new(
+          current_user, source, name_candidate
+        ).copy(copy_overlays, copy_layers, additional_fields)
+      end
+
+    elsif params[:tables]
+      viewed_user = ::User.find(:username => CartoDB.extract_subdomain(request))
+      tables = @stats_aggregator.timing('locate-table') do
+          params[:tables].map { |table_name|
+          if viewed_user
+            Helpers::TableLocator.new.get_by_id_or_name(table_name,  viewed_user)
+          end
+        }.flatten
+      end
+      blender = Visualization::TableBlender.new(current_user, tables)
+      map = blender.blend
+      vis = Visualization::Member.new(
+          vis_data.merge(
+            name:     name_candidate,
+            map_id:   map.id,
+            type:     'derived',
+            privacy:  blender.blended_privacy,
+            user_id:  current_user.id
+          )
+        )
+
+      prof_attrs = vis.user.profile_attributes
+      @stats_aggregator.timing('default-overlays') do
+        Visualization::Overlays.new(vis).create_default_overlays(prof_attrs)
+      end
+    else
+      vis = Visualization::Member.new(
+          vis_data.merge(
+            name: name_candidate,
+            user_id:  current_user.id
+          )
+        )
+    end
+
+    vis
+  end
+
   def set_visualization_prev_next(vis, prev_id, next_id)
     if !prev_id.nil?
       prev_vis = Visualization::Member.new(id: prev_id).fetch
