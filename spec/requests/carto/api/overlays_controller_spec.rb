@@ -61,6 +61,48 @@ describe Carto::Api::OverlaysController do
       end
     end
 
+    it 'lists all overlays with advanced ui user' do
+      begin
+        orig_host = host
+        # Enable the bbg_pro_ui flag to have all 5 layers return
+        ::User.any_instance.stubs(:has_feature_flag?).with('bbg_pro_ui').returns(true)
+        ::User.any_instance.stubs(:has_feature_flag?).with('disabled_cartodb_logo').returns(false)
+        bbg_user = create_user
+        bbg_table = create_table user_id: bbg_user.id
+
+        existing_overlay_ids = []
+        old_host = host
+        get_json overlays_url({ api_key: bbg_user.api_key, visualization_id: bbg_table.table_visualization.id, host: "#{bbg_user.username}.localhost.lan"}) do |response|
+          response.status.should be_success
+          response.body.count.should eq 5 # Newly created overlays have this amount of layers
+          existing_overlay_ids = response.body.map { |overlay| overlay['id'] }
+        end
+
+        header_overlay = Carto::Overlay.new(type: 'header', visualization_id: bbg_table.table_visualization.id, order: 1)
+        header_overlay.save
+
+        text_overlay = Carto::Overlay.new(type: 'text', visualization_id: bbg_table.table_visualization.id, order: 2)
+        text_overlay.save
+
+        new_overlay_ids = [header_overlay.id, text_overlay.id]
+
+        get_json overlays_url({ api_key: bbg_user.api_key, visualization_id: bbg_table.table_visualization.id, host: "#{bbg_user.username}.localhost.lan"}) do |response|
+          response.status.should be_success
+          current_overlay_ids = response.body.map { |overlay| overlay['id'] }
+          response.body.count.should == new_overlay_ids.count + existing_overlay_ids.count
+          # == checks order, while intersection doesn't
+          (current_overlay_ids & (existing_overlay_ids + new_overlay_ids) == current_overlay_ids).should eq true
+        end
+      ensure
+        ::User.any_instance.unstub(:has_feature_flag?)
+        # overlays_url caches and resets the host.  Therefore we need to 
+        # restore host and call the url helper once more with the old host to restore the original value
+        # TODO: Is there a way to disable the cache?
+        host! orig_host
+        get overlays_url(params.merge(host: host))
+      end
+    end
+
     it 'returns 401 when accessing other users overlays' do
       get_json overlays_url(params.merge(api_key: @user2.api_key)) do |response|
         response.status.should eq 401
