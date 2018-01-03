@@ -415,6 +415,80 @@ namespace :cartodb do
       end
     end
 
+    desc "Create Sample Map"
+    task :create_sample_map, [:map_name, :dataset_names] => [:environment] do |t, args|
+      CONNECT_TIMEOUT = 45
+      DEFAULT_TIMEOUT = 60
+
+      map_name = args[:map_name]
+      dataset_names = args[:dataset_names].split(';')
+      common_data_username = Cartodb.config[:common_data]["username"]
+      common_data_base_url = Cartodb.config[:common_data]["base_url"]
+      sample_maps_username = Cartodb.config[:map_samples]["username"]
+      common_data_user = Carto::User.find_by_username(common_data_username)
+      sample_maps_user = Carto::User.find_by_username(sample_maps_username)
+      base_url = CartoDB.base_url(sample_maps_user.subdomain, sample_maps_user.organization_username)
+      any_import_failed = false
+
+      dataset_names.each do |dataset_name|
+        vis = Carto::Visualization.where(type: 'table', name: dataset_name, user_id: common_data_user.id).first
+
+        params = {
+          "api_key" => sample_maps_user.api_key,
+          "interval" => Carto::ExternalSource::REFRESH_INTERVAL, "type_guessing" => true, "create_vis" => false,
+          "remote_visualization_id" => vis.id,
+          "fdw" => "driver=postgres;channel=postgres_fdw;table=#{dataset_name}",
+          "value" => dataset_name,
+          "needs_cd_import" => true, "format" => "json", "controller" => "api/json/synchronizations",
+          "action" => "create", "user_domain" => sample_maps_user.subdomain
+        }
+
+        http_client = Carto::Http::Client.get('create_sample_map', log_requests: true)
+        response = http_client.post(base_url + '/api/v1/synchronizations', {
+            headers: { "Content-Type" => "application/json" },
+            body: params.to_json,
+            connecttimeout: CONNECT_TIMEOUT,
+            timeout: DEFAULT_TIMEOUT,
+        })
+        
+        if response.code == 200
+          res = JSON.parse(response.body, object_class: OpenStruct)
+          job_id = res.data_import.item_queue_id if res.data_import
+          import_job = Carto::DataImport.where(id: job_id).first
+          until import_job.state == 'complete'
+            puts "Import job not complete yet: #{import_job.state}"
+            sleep 2
+            import_job.reload
+          end
+        else
+          any_import_failed = true
+          puts "Synchronization failed: #{response.code}\n#{response.body}"
+        end
+      end
+
+      unless any_import_failed
+        params = {
+          "api_key" => sample_maps_user.api_key,
+          "name" => map_name, "type" => "derived", "locked" => "true", "tables" => dataset_names,
+          "transition_options" => { "time" => 0 }
+        }
+              
+        http_client = Carto::Http::Client.get('create_sample_map', log_requests: true)
+        response = http_client.post(base_url + '/api/v1/viz', {
+            headers: { "Content-Type" => "application/json" },
+            body: params.to_json,
+            connecttimeout: CONNECT_TIMEOUT,
+            timeout: DEFAULT_TIMEOUT,
+        })
+
+        if response.code == 200
+          puts "Sample map created successfully"
+        else
+          puts "Sample map creation failed: #{response.code}"
+        end
+      end
+    end
+
     def get_visualizations_api_url
       common_data_config = Cartodb.config[:common_data]
       username = common_data_config["username"]
