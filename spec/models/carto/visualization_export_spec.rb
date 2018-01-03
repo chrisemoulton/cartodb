@@ -23,7 +23,9 @@ describe Carto::DataExporter do
 
       begin
         Carto::Http::Request.any_instance.stubs(:run)
-        file = File.new(Carto::DataExporter.new.export_table(user_table, tmp_dir, format))
+        # Bloomberg - Sample 2.0 changed the prototype to add a is_remote for FDW export.
+        #   Set to false since carto unit tests have no concept of FDW
+        file = File.new(Carto::DataExporter.new.export_table(user_table, tmp_dir, format, false))
         file.path.should match(/.#{format}$/)
         file.close
       ensure
