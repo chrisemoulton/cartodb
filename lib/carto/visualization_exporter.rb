@@ -42,6 +42,8 @@ module Carto
           # does not honor .carto.gpkg format at this time
           
           File.rename(exported_file, "#{folder}/#{table_name}.carto.gpkg")
+          # Need to re-create the file object for return
+          file = File.new("#{folder}/#{table_name}.carto.gpkg")
         end
       end
 
