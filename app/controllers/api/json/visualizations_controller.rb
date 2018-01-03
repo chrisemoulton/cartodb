@@ -501,9 +501,8 @@ class Api::Json::VisualizationsController < Api::ApplicationController
           )
         )
 
-      prof_attrs = vis.user.profile_attributes
       @stats_aggregator.timing('default-overlays') do
-        Visualization::Overlays.new(vis).create_default_overlays(prof_attrs)
+        Visualization::Overlays.new(vis).create_default_overlays
       end
     else
       vis = Visualization::Member.new(
