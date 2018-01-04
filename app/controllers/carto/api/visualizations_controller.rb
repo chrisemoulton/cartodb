@@ -281,7 +281,6 @@ module Carto
         tags = params.fetch(:tags, '').split(',')
         tags = nil if tags.empty?
         is_common_data_user = common_data_user && user_id == common_data_user.id
-        is_maps = types.count == 1 && types[0] == "'derived'"
 
         args = [user_id, user_id]
 
@@ -289,7 +288,7 @@ module Carto
         likedCondition = only_liked ? 'WHERE likes > 0' : ''
         lockedCondition = only_locked ? 'AND v.locked=true' : ''
         categoryCondition = ''
-        if is_maps
+        if types == ["'derived'"] # is_maps
           user_join = 'LEFT JOIN users AS u ON u.id=v.user_id'
           auth_tokens_column = ', ARRAY[u.auth_token] AS auth_tokens'
         end

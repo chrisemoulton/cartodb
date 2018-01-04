@@ -43,8 +43,6 @@ DESC
 
       u.save
 
-      u.get_auth_token
-
       raise u.errors.inspect if u.new?
       puts "User #{u.username} created successfully"
     end
@@ -83,8 +81,6 @@ DESC
 
       user.save
       puts "User #{user.username} created successfully"
-
-      user.get_auth_token
 
       # 10 Gb of quota
       quota = 1073741824
@@ -156,7 +152,6 @@ DESC
         end
 
         u.save
-        u.get_auth_token
         if u.new?
           raise u.errors.inspect
         end
@@ -190,7 +185,6 @@ DESC
       user.organization = org;
       user.save(raise_on_failure: true)
       user.create_in_central
-      user.get_auth_token
 
       file_size_quota = 1500*1024*1024
       row_count_quota = 5000000

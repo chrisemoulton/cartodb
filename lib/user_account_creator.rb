@@ -265,8 +265,6 @@ module CartoDB
       @user.quota_in_bytes = @user_params[PARAM_QUOTA_IN_BYTES] if @user_params[PARAM_QUOTA_IN_BYTES]
       @user.viewer = @user_params[PARAM_VIEWER] if @user_params[PARAM_VIEWER]
 
-      @user.get_auth_token
-
       @built = true
       @user
     end
