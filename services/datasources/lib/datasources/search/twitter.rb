@@ -458,7 +458,7 @@ module CartoDB
             timezoned_date += timezone*60
 
             # Gnip doesn't allows searches "in the future"
-            date = timezoned_date >= (Time.now - TIMEZONE_THRESHOLD).utc ? nil : timezoned_date.strftime("%Y%m%d%H%M")
+            date = timezoned_date >= (Time.now.utc - TIMEZONE_THRESHOLD).utc ? nil : timezoned_date.strftime("%Y%m%d%H%M")
           end
 
           date
