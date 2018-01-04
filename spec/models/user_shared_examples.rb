@@ -775,23 +775,27 @@ shared_examples_for "user models" do
     it 'shows all basemaps for Google Maps users' do
       user = create_user
       basemaps = user.basemaps
-      basemaps.keys.sort.should eq ['CARTO', 'Stamen']
+      # Bloomberg uses a different set of basemaps
+      basemaps.keys.sort.should eq ['Bloomberg']
       user.google_maps_key = 'client=whatever'
       user.google_maps_private_key = 'wadus'
       user.save
       basemaps = user.basemaps
-      basemaps.keys.sort.should eq ['CARTO', 'GMaps', 'Stamen']
+      # Bloomberg doesn't support google base maps
+      basemaps.keys.sort.should eq ['Bloomberg']
     end
   end
 
   describe '#default_basemap' do
     it 'defaults to Google for Google Maps users, Positron for others' do
       user = create_user
-      user.default_basemap['name'].should eq 'Positron'
+      # Bloomberg defaults to Dark basemap
+      user.default_basemap['name'].should eq 'Dark'
       user.google_maps_key = 'client=whatever'
       user.google_maps_private_key = 'wadus'
       user.save
-      user.default_basemap['name'].should eq 'GMaps Roadmap'
+      # Bloomberg doesn't support google base maps
+      user.default_basemap['name'].should eq 'Dark'
     end
   end
 end
