@@ -17,6 +17,7 @@ describe 'KML regression tests' do
   include_context "no stats"
 
   before(:all) do
+    pending("Bloomberg does not officially support KML files yet")
     @user = create_user
     @user.save
   end
