@@ -41,7 +41,7 @@ class Carto::User < ActiveRecord::Base
   has_many :layers, through: :layers_user, after_add: Proc.new { |user, layer| layer.set_default_order(user) }
 
   has_many :profiles_user, dependent: :destroy, foreign_key: :user_id, inverse_of: :user
-  has_many :profiles, :through => :profiles_user
+  has_many :profiles, through: :profiles_user
 
   belongs_to :organization, inverse_of: :users
   has_one :owned_organization, class_name: Carto::Organization, inverse_of: :owner, foreign_key: :owner_id
