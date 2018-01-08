@@ -9,7 +9,6 @@ module CartoDB
 
       def create_default_overlays
         prof_attrs = @visualization.user && @visualization.user.profile_attributes
-        puts "create_default_overlays - prof_attrs: #{prof_attrs}"
         create_share_overlay(@visualization, 2)
         if @visualization.user.has_feature_flag?('bbg_pro_ui')
           create_search_overlay(@visualization, 3)
