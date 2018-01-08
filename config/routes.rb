@@ -526,6 +526,9 @@ CartoDB::Application.routes.draw do
     # Permissions
     put '(/user/:user_domain)(/u/:user_domain)/api/v1/perm/:id' => 'permissions#update', as: :api_v1_permissions_update
 
+    # Profile Attributes
+    get '(/user/:user_domain)(/u/:user_domain)/api/v1/profile_attributes' => 'profile_attributes#show'
+
     # Organizations
     get '(/user/:user_domain)(/u/:user_domain)/api/v1/org/'      => 'organizations#show',  as: :api_v1_organization_show
 
