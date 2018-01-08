@@ -66,7 +66,7 @@ namespace :user do
       count = 0
 
       Carto::User.where("auth_token IS NULL").find_in_batches(batch_size: 100) do |batch|
-        sleep(50)
+        sleep(5)
         batch.each do |user|
           user.get_auth_token
           count += 1
