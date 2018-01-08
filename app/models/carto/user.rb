@@ -80,7 +80,6 @@ class Carto::User < ActiveRecord::Base
 
   before_create :set_database_host
   before_create :generate_api_key
-  before_create :populate_auth_token
 
   # Auto creates notifications on first access
   def static_notifications_with_creation

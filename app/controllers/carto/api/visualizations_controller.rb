@@ -269,6 +269,8 @@ module Carto
         render :json => '{"visualizations":' + layers.to_json + ' ,"total_entries":' + layers.size.to_s + '}'
       end
 
+      # NOTE: Only user auth_tokens are included for performance
+      # May not work with shared maps (missing organization token)
       def list
         user_id = current_user.id
         types = params.fetch(:types, Array.new).split(',')

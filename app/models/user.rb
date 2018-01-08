@@ -217,7 +217,6 @@ class User < Sequel::Model
     super
     self.database_host ||= ::Rails::Sequel.configuration.environment_for(Rails.env)['host']
     self.api_key ||= self.class.make_token
-    populate_auth_token
   end
 
   def before_save
