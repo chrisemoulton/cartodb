@@ -3,8 +3,10 @@
 require_relative '../../../spec_helper'
 require_relative '../../../../app/controllers/carto/api/overlays_controller'
 require_relative '../../../../spec/requests/api/json/overlays_controller_shared_examples'
+require_relative '../../../helpers/feature_flag_helper'
 
 describe Carto::Api::OverlaysController do
+  include FeatureFlagHelper
 
   it_behaves_like 'overlays controllers' do
   end
@@ -14,6 +16,10 @@ describe Carto::Api::OverlaysController do
     @api_key = @user.api_key
 
     @user2 = create_user
+
+    # Create the feature flags that determine the default overlays
+    @feature_flag = FactoryGirl.create(:feature_flag, name: 'bbg_pro_ui')
+    @feature_flag = FactoryGirl.create(:feature_flag, name: 'disabled_cartodb_logo')
 
     host! "#{@user.username}.localhost.lan"
   end
@@ -64,10 +70,10 @@ describe Carto::Api::OverlaysController do
     it 'lists all overlays with advanced ui user' do
       begin
         orig_host = host
-        # Enable the bbg_pro_ui flag to have all 5 layers return
-        ::User.any_instance.stubs(:has_feature_flag?).with('bbg_pro_ui').returns(true)
-        ::User.any_instance.stubs(:has_feature_flag?).with('disabled_cartodb_logo').returns(false)
         bbg_user = create_user
+        # Enable the bbg_pro_ui flag to have all 5 layers return
+        set_feature_flag(bbg_user, 'bbg_pro_ui', true)
+        set_feature_flag(bbg_user, 'disabled_cartodb_logo', false)
         bbg_table = create_table user_id: bbg_user.id
 
         existing_overlay_ids = []
@@ -94,7 +100,6 @@ describe Carto::Api::OverlaysController do
           (current_overlay_ids & (existing_overlay_ids + new_overlay_ids) == current_overlay_ids).should eq true
         end
       ensure
-        ::User.any_instance.unstub(:has_feature_flag?)
         # overlays_url caches and resets the host.  Therefore we need to 
         # restore host and call the url helper once more with the old host to restore the original value
         # TODO: Is there a way to disable the cache?
