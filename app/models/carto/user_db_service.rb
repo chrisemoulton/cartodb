@@ -7,6 +7,7 @@ module Carto
     SCHEMA_CARTODB = 'cartodb'.freeze
     SCHEMA_IMPORTER = 'cdb_importer'.freeze
     SCHEMA_CDB_DATASERVICES_API = 'cdb_dataservices_client'.freeze
+    SCHEMA_COMMON_DATA = Cartodb::config[:fdw]['remote_schema'].freeze
 
     def initialize(user)
       @user = user
@@ -21,7 +22,8 @@ module Carto
     def self.build_search_path(user_schema, quote_user_schema = true)
       # TODO Add SCHEMA_CDB_GEOCODER when we open the geocoder API to all the people
       quote_char = quote_user_schema ? "\"" : ""
-      "#{quote_char}#{user_schema}#{quote_char}, #{SCHEMA_CARTODB}, #{SCHEMA_CDB_DATASERVICES_API}, #{SCHEMA_PUBLIC}"
+      # Bloomberg - automatically add the common data user to search path
+      "#{quote_char}#{user_schema}#{quote_char}, #{SCHEMA_CARTODB}, #{SCHEMA_CDB_DATASERVICES_API}, \"#{SCHEMA_COMMON_DATA}\", #{SCHEMA_PUBLIC}"
     end
 
     def public_user_roles

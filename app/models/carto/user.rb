@@ -40,6 +40,9 @@ class Carto::User < ActiveRecord::Base
   has_many :layers_user
   has_many :layers, through: :layers_user, after_add: Proc.new { |user, layer| layer.set_default_order(user) }
 
+  has_many :profiles_user, dependent: :destroy, foreign_key: :user_id, inverse_of: :user
+  has_many :profiles, through: :profiles_user
+
   belongs_to :organization, inverse_of: :users
   has_one :owned_organization, class_name: Carto::Organization, inverse_of: :owner, foreign_key: :owner_id
   has_one :static_notifications, class_name: Carto::UserNotification, inverse_of: :user
@@ -222,15 +225,48 @@ class Carto::User < ActiveRecord::Base
   end
 
   # returns a list of basemaps enabled for the user
+  # when google map key is set it gets the basemaps inside the group "GMaps"
+  # if not it get everything else but GMaps in any case GMaps and other groups can work together
+  # this may have change in the future but in any case this method provides a way to abstract what
+  # basemaps are active for the user
+  #
+  # Basemaps may also be filtered by profile attributes - this implementation respects such filters.
   def basemaps
-    (Cartodb.config[:basemaps] || []).select { |group| group != 'GMaps' || google_maps_enabled? }
+    basemaps = Cartodb.config[:basemaps] || []
+
+    def filter_basemaps(bms, whitelisted_bms)
+      # Inner join basemaps and whitelist on category
+      common_bms = whitelisted_bms.select { |wbm| bms.key? wbm['basemapCategory'] }
+
+      # Pick specific keys from hash
+      def pick_keys(hash, keys)
+        Hash[keys.map {|k| [k, hash[k]]}
+                 .select {|k, v| v}]
+      end
+
+      # Prune basemap labels within categories
+      pruned_bm_entries = common_bms.map do |cbm|
+        category = cbm['basemapCategory']
+        [category, pick_keys(bms[category], cbm['basemapLabels'])]
+      end
+      Hash[pruned_bm_entries]
+    end
+
+    whitelisted_basemaps = profile_attributes['whitelistedBasemaps']
+
+    filtered_basemaps = whitelisted_basemaps ?
+        filter_basemaps(basemaps, whitelisted_basemaps) :
+        basemaps
+
+    filtered_basemaps.select { |group| group != 'GMaps' || google_maps_enabled? }
   end
 
   def google_maps_enabled?
     google_maps_query_string.present?
   end
 
-  # return the default basemap based on the default setting. If default attribute is not set, first basemaps is returned
+  # return the default basemap based on the default setting.
+  # If default attribute is not set, first basemaps is returned
   # it only takes into account basemaps enabled for that user
   def default_basemap
     default = if google_maps_enabled? && basemaps['GMaps'].present?
@@ -503,6 +539,56 @@ class Carto::User < ActiveRecord::Base
 
   def can_change_password?
     !Carto::Ldap::Manager.new.configuration_present?
+  end
+
+  # Key used to store a sorted set of all session profile ids
+  # which which this user is associated. Members are indexed
+  # by their expiration date in seconds since the Unix Epoch.
+  def session_profile_key
+    @session_profile_key ||= "user:#{id}:session_profiles"
+  end
+
+  # Replace session profiles with those with
+  # the specified profile_names.
+  def replace_session_profiles(profile_names)
+    # Set expiration date for each profile id
+    profile_ids = profile_names.empty? ? [] : Profile.where(name: profile_names).map(&:id).to_a
+    expiration_timestamp = Time.now.to_i + SESSION_PROFILE_TTL
+    timestamp_ids = profile_ids.flat_map { |id| [expiration_timestamp, id] }
+
+    $users_metadata.multi do
+      # Replace sorted set contents
+      $users_metadata.del(session_profile_key)
+      if !timestamp_ids.empty?
+        $users_metadata.zadd(session_profile_key, timestamp_ids)
+        # Cap lifetime of overall set
+        $users_metadata.expire(session_profile_key, SESSION_PROFILE_TTL)
+      end
+    end
+  end
+
+  # Remove session profiles with expiration dates in the past.
+  def flush_session_profiles
+    current_timestamp = Time.now.to_i
+    $users_metadata.zremrangebyscore(session_profile_key, 0, current_timestamp)
+  end
+
+  # Get the session profiles associated with this user
+  def session_profiles
+    # Remove expired profiles
+    flush_session_profiles
+    # Query Profile associated with stored ids
+    profile_ids = $users_metadata.zrange(session_profile_key, 0, -1)
+    profile_ids.empty? ? [] : Profile.where(id: profile_ids).to_a
+  end
+
+  # Return a collection of attributes containing all attributes
+  # of each profile to which this user is associated
+  def profile_attributes
+    all_profiles = (profiles + session_profiles).uniq(&:id)
+    all_profiles.reduce({}) do |attr, prof|
+      attr.merge(prof.attrs_hash)
+    end
   end
 
   def period_end_date

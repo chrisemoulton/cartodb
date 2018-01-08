@@ -115,7 +115,8 @@ module CartoDB
         feature_flags: feature_flags,
         base_url: public_url,
         needs_password_confirmation: needs_password_confirmation?,
-        viewer: viewer
+        viewer: viewer,
+        profile_attributes: profile_attributes
       }
 
       if organization.present?

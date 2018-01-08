@@ -18,7 +18,9 @@ module Carto
           user_id: @map.user_id,
           view_bounds_ne: @map.view_bounds_ne,
           view_bounds_sw: @map.view_bounds_sw,
-          zoom: @map.zoom
+          zoom: @map.zoom,
+          lock_pan: @map.lock_pan,
+          lock_zoom: @map.lock_zoom
         }
       end
     end
