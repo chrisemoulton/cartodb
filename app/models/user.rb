@@ -886,7 +886,7 @@ class User < Sequel::Model
       'soft_mapzen_routing_limit', soft_mapzen_routing_limit,
       'google_maps_client_id', google_maps_key,
       'google_maps_api_key', google_maps_private_key,
-      'period_end_date', period_end_date,
+      'period_end_date', self[:period_end_date],
       'geocoder_provider', geocoder_provider,
       'isolines_provider', isolines_provider,
       'routing_provider', routing_provider
@@ -1546,6 +1546,10 @@ class User < Sequel::Model
 
   def new_visualizations_version
     builder_enabled? ? 3 : 2
+  end
+
+  def period_end_date
+    self[:period_end_date].utc
   end
 
   private

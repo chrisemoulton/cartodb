@@ -505,6 +505,10 @@ class Carto::User < ActiveRecord::Base
     !Carto::Ldap::Manager.new.configuration_present?
   end
 
+  def period_end_date
+    self[:period_end_date].utc
+  end
+
   private
 
   def set_database_host
