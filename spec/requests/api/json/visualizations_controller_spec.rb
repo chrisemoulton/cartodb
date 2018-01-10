@@ -19,9 +19,25 @@ describe Api::Json::VisualizationsController do
   include CacheHelper
   include MetricsHelper
 
+  # Mock for a Rails context
+  class ContextMock
+    def initialize(global_context)
+      @global_context = global_context
+    end
+
+    def request
+      nil
+    end
+
+    def polymorphic_path(*args)
+      @global_context.polymorphic_path(*args)
+    end
+  end
+
   before(:all) do
-    CartoDB::NamedMapsWrapper::NamedMaps.any_instance.stubs(:get => nil, :create => true, :update => true)
+    Carto::NamedMaps::Api.any_instance.stubs(:get => nil, :create => true, :update => true)
     @user = create_user(username: 'test')
+    @mock_context = ContextMock.new(self)
 
     shared_empty_dataset_name = Cartodb.config[:shared_empty_dataset_name]
     commondata_username = Cartodb.config[:common_data]['username']
@@ -427,19 +443,19 @@ describe Api::Json::VisualizationsController do
     end
 
     it 'gets categories & sub categories' do
-      get_json CartoDB.url(self, 'api_v1_visualizations_subcategories', {}, @user) do |response|
+      get_json CartoDB.url(@mock_context, 'api_v1_visualizations_subcategories', {}, @user) do |response|
         response.status.should be_success
         categories = response.body
         categories.count.should eq 0
       end
 
-      get_json CartoDB.url(self, 'api_v1_visualizations_subcategories', {category_id: @parentCat.parent_id}, @user) do |response|
+      get_json CartoDB.url(@mock_context, 'api_v1_visualizations_subcategories', {category_id: @parentCat.parent_id}, @user) do |response|
         response.status.should be_success
         categories = response.body
         categories.count.should eq 3
       end
 
-      get_json CartoDB.url(self, 'api_v1_visualizations_subcategories', {category_id: @parentCat.id}, @user) do |response|
+      get_json CartoDB.url(@mock_context, 'api_v1_visualizations_subcategories', {category_id: @parentCat.id}, @user) do |response|
         response.status.should be_success
         categories = response.body
         categories.count.should eq 2
@@ -447,7 +463,7 @@ describe Api::Json::VisualizationsController do
     end
 
     it 'category - subcategory relationship established correctly' do
-      get_json CartoDB.url(self, 'api_v1_visualizations_subcategories', {category_id: @parentCat.parent_id}, @user) do |response|
+      get_json CartoDB.url(@mock_context, 'api_v1_visualizations_subcategories', {category_id: @parentCat.parent_id}, @user) do |response|
         response.status.should be_success
         categories = response.body
         categories.count.should eq 3
@@ -480,7 +496,7 @@ describe Api::Json::VisualizationsController do
     end
 
     it 'gets visualizations' do
-      get_json CartoDB.url(self, 'api_v1_visualizations_list', {types: 'table'}, @user) do |response|
+      get_json CartoDB.url(@mock_context, 'api_v1_visualizations_list', {types: 'table'}, @user) do |response|
         response.status.should be_success
         viz = response.body[:visualizations]
         viz.count.should be >= 3
@@ -488,7 +504,7 @@ describe Api::Json::VisualizationsController do
     end
 
     it 'gets visualizations by parent category' do
-      get_json CartoDB.url(self, 'api_v1_visualizations_list', {types: 'table', parent_category: @parentCat[:id]}, @user) do |response|
+      get_json CartoDB.url(@mock_context, 'api_v1_visualizations_list', {types: 'table', parent_category: @parentCat[:id]}, @user) do |response|
         response.status.should be_success
         viz = response.body[:visualizations]
         viz.count.should be >= 3
@@ -496,14 +512,14 @@ describe Api::Json::VisualizationsController do
     end
 
     it 'gets visualizations by sub-category' do
-      get_json CartoDB.url(self, 'api_v1_visualizations_list', {types: 'table', parent_category: @childCat1[:id]}, @user) do |response|
+      get_json CartoDB.url(@mock_context, 'api_v1_visualizations_list', {types: 'table', parent_category: @childCat1[:id]}, @user) do |response|
         response.status.should be_success
         viz = response.body[:visualizations]
         viz = viz.select { |v| v['id'] == @v1.id }
         viz.count.should eq 1
       end
 
-      get_json CartoDB.url(self, 'api_v1_visualizations_list', {types: 'table', parent_category: @childCat2[:id]}, @user) do |response|
+      get_json CartoDB.url(@mock_context, 'api_v1_visualizations_list', {types: 'table', parent_category: @childCat2[:id]}, @user) do |response|
         response.status.should be_success
         viz = response.body[:visualizations]
         viz = viz.select { |v| [@v2.id, @v3.id].include? v['id'] }
@@ -512,21 +528,21 @@ describe Api::Json::VisualizationsController do
     end
 
     it 'gets visualizations by tag' do
-      get_json CartoDB.url(self, 'api_v1_visualizations_list', {types: 'table', tags: 'tagx'}, @user) do |response|
+      get_json CartoDB.url(@mock_context, 'api_v1_visualizations_list', {types: 'table', tags: 'tagx'}, @user) do |response|
         response.status.should be_success
         viz = response.body[:visualizations]
         viz = viz.select { |v| [@v1.id, @v2.id].include? v['id'] }
         viz.count.should eq 2
       end
 
-      get_json CartoDB.url(self, 'api_v1_visualizations_list', {types: 'table', tags: 'tagy'}, @user) do |response|
+      get_json CartoDB.url(@mock_context, 'api_v1_visualizations_list', {types: 'table', tags: 'tagy'}, @user) do |response|
         response.status.should be_success
         viz = response.body[:visualizations]
         viz = viz.select { |v| [@v1.id, @v3.id].include? v['id'] }
         viz.count.should eq 2
       end
 
-      get_json CartoDB.url(self, 'api_v1_visualizations_list', {types: 'table', tags: 'tagx,tagy'}, @user) do |response|
+      get_json CartoDB.url(@mock_context, 'api_v1_visualizations_list', {types: 'table', tags: 'tagx,tagy'}, @user) do |response|
         response.status.should be_success
         viz = response.body[:visualizations]
         viz.count.should be >= 3
@@ -540,7 +556,7 @@ describe Api::Json::VisualizationsController do
         response.status.should be_success
       end
 
-      get_json CartoDB.url(self, 'api_v1_visualizations_list', {types: 'table', only_liked: true}, @user) do |response|
+      get_json CartoDB.url(@mock_context, 'api_v1_visualizations_list', {types: 'table', only_liked: true}, @user) do |response|
         response.status.should be_success
         viz = response.body[:visualizations]
         viz = viz.select { |v| v['id'] == @v1.id }
@@ -549,7 +565,7 @@ describe Api::Json::VisualizationsController do
     end
 
     it 'gets locked visualizations' do
-      get_json CartoDB.url(self, 'api_v1_visualizations_list', {types: 'table', locked: true}, @user) do |response|
+      get_json CartoDB.url(@mock_context, 'api_v1_visualizations_list', {types: 'table', locked: true}, @user) do |response|
         response.status.should be_success
         viz = response.body[:visualizations]
         viz = viz.select { |v| v['id'] == @v2.id }
@@ -561,7 +577,7 @@ describe Api::Json::VisualizationsController do
   describe 'commondata library datasets' do
     it 'shared_empty_dataset should be visible to commondata user' do
       login(@commondata_user)
-      get_json CartoDB.url(self, 'api_v1_visualizations_list', {types: 'table,remote'}, @commondata_user) do |response|
+      get_json CartoDB.url(@mock_context, 'api_v1_visualizations_list', {types: 'table,remote'}, @commondata_user) do |response|
         response.status.should be_success
         viz = response.body[:visualizations]
         viz = viz.select { |v| v['name'] == @shared_empty_dataset_vis.name }
@@ -571,7 +587,7 @@ describe Api::Json::VisualizationsController do
 
     it 'shared_empty_dataset should be hidden from regular user' do
       login(@user)
-      get_json CartoDB.url(self, 'api_v1_visualizations_list', {types: 'table,remote'}, @user) do |response|
+      get_json CartoDB.url(@mock_context, 'api_v1_visualizations_list', {types: 'table,remote'}, @user) do |response|
         response.status.should be_success
         viz = response.body[:visualizations]
         viz = viz.select { |v| v['name'] == @shared_empty_dataset_vis.name }
@@ -581,7 +597,7 @@ describe Api::Json::VisualizationsController do
 
     it 'library dataset should be visible to commondata user' do
       login(@commondata_user)
-      get_json CartoDB.url(self, 'api_v1_visualizations_list', {types: 'table,remote'}, @commondata_user) do |response|
+      get_json CartoDB.url(@mock_context, 'api_v1_visualizations_list', {types: 'table,remote'}, @commondata_user) do |response|
         response.status.should be_success
         viz = response.body[:visualizations]
         viz = viz.select { |v| v['name'] == @lib_vis.name }
@@ -591,7 +607,7 @@ describe Api::Json::VisualizationsController do
 
     it 'library dataset should be visible to regular user' do
       login(@user)
-      get_json CartoDB.url(self, 'api_v1_visualizations_list', {types: 'table,remote'}, @user) do |response|
+      get_json CartoDB.url(@mock_context, 'api_v1_visualizations_list', {types: 'table,remote'}, @user) do |response|
         response.status.should be_success
         viz = response.body[:visualizations]
         viz = viz.select { |v| v['name'] == @lib_vis.name }
@@ -601,7 +617,7 @@ describe Api::Json::VisualizationsController do
 
     it 'library dataset should be visible to regular user with types=remote' do
       login(@user)
-      get_json CartoDB.url(self, 'api_v1_visualizations_list', {types: 'remote'}, @user) do |response|
+      get_json CartoDB.url(@mock_context, 'api_v1_visualizations_list', {types: 'remote'}, @user) do |response|
         response.status.should be_success
         viz = response.body[:visualizations]
         viz = viz.select { |v| v['name'] == @lib_vis.name }
@@ -613,7 +629,7 @@ describe Api::Json::VisualizationsController do
   describe 'load common data' do
     it 'common data datasets should return without login' do
       pending("HTTP requests from test environment is connecting to dev environment. Needs retest after HTTP request is fixed")
-      get_json CartoDB.url(self, 'api_v1_visualizations_index', {types: 'table', privacy: ::UserTable::PRIVACY_PUBLIC}, @commondata_user) do |response|
+      get_json CartoDB.url(@mock_context, 'api_v1_visualizations_index', {types: 'table', privacy: ::UserTable::PRIVACY_PUBLIC}, @commondata_user) do |response|
         response.status.should be_success
         viz = response.body[:visualizations]
         viz.count.should be 2 #must include shared_empty_dataset
@@ -625,7 +641,7 @@ describe Api::Json::VisualizationsController do
       visualizations_api_url = CartoDB::Visualization::CommonDataService.build_url(self)
       @user.load_common_data(visualizations_api_url, false)
       login(@user)
-      get_json CartoDB.url(self, 'api_v1_visualizations_list', {types: 'remote'}, @user) do |response|
+      get_json CartoDB.url(@mock_context, 'api_v1_visualizations_list', {types: 'remote'}, @user) do |response|
         response.status.should be_success
         viz = response.body[:visualizations]
         viz = viz.select { |v| v['name'] == @lib_vis.name && v['needs_cd_import'] == false }
