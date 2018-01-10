@@ -37,6 +37,7 @@ describe Visualization::Member do
     @user_mock.stubs(:viewer).returns(false)
     @user_mock.stubs(:has_feature_flag?).returns(false)
     @user_mock.stubs(:new_visualizations_version).returns(2)
+    @user_mock.stubs(:profile_attributes).returns({})
     CartoDB::Visualization::Relator.any_instance.stubs(:user).returns(@user_mock)
 
     support_tables_mock = Doubles::Visualization::SupportTables.new
