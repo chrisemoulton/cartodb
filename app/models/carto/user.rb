@@ -591,10 +591,6 @@ class Carto::User < ActiveRecord::Base
     end
   end
 
-  def period_end_date
-    self[:period_end_date].utc
-  end
-
   private
 
   def set_database_host

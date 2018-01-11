@@ -896,7 +896,7 @@ class User < Sequel::Model
       'soft_mapzen_routing_limit', soft_mapzen_routing_limit,
       'google_maps_client_id', google_maps_key,
       'google_maps_api_key', google_maps_private_key,
-      'period_end_date', self[:period_end_date],
+      'period_end_date', period_end_date,
       'geocoder_provider', geocoder_provider,
       'isolines_provider', isolines_provider,
       'routing_provider', routing_provider
@@ -1644,10 +1644,6 @@ class User < Sequel::Model
     all_profiles.reduce({}) do |attr, prof|
       attr.merge(prof.attrs_hash)
     end
-  end
-  
-  def period_end_date
-    self[:period_end_date].utc
   end
 
   private
