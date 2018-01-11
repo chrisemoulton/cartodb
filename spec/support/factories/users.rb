@@ -153,6 +153,7 @@ module CartoDB
       user_mock.stubs(:public_url).returns(public_url)
       user_mock.stubs(:avatar_url).returns(avatar_url)
       user_mock.stubs(:new_visualizations_version).returns(2)
+      user_mock.stubs(:profile_attributes).returns({})
       user_mock
     end
 

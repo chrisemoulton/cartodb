@@ -18,7 +18,7 @@ describe 'UUIDHelper' do
   end
 
   it 'raises an error if it points to a non-standard port' do
-    expect { @url_validator.validate_url!("http://example.com:8080") }
+    expect { @url_validator.validate_url!("http://example.com:38080") }
       .to raise_error(Carto::UrlValidator::InvalidUrlError)
   end
 

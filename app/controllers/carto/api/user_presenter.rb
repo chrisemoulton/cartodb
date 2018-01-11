@@ -185,6 +185,7 @@ module Carto
           feature_flags: @user.feature_flag_names,
           base_url: @user.public_url,
           needs_password_confirmation: @user.needs_password_confirmation?,
+          profile_attributes: @user.profile_attributes
         }
 
         if @user.organization.present?

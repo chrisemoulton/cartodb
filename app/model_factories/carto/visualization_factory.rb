@@ -25,7 +25,7 @@ module Carto
         kind: kind,
         exportable: esv.nil? ? true : esv.exportable,
         export_geom: esv.nil? ? true : esv.export_geom,
-        category: esv.nil? ? -1 : esv.category,
+        category: esv.nil? ? nil : esv.category,
         overlays: Carto::OverlayFactory.build_default_overlays(user)
       )
 
