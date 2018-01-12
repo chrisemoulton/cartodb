@@ -108,7 +108,7 @@ shared_examples_for "user models" do
     end
 
     it 'calculates the used geocoder quota in the current billing cycle' do
-      pending("Bloomberg does not use billing cycle logic and provides unlimited quota")
+      pending("Bloomberg does not use billing cycle logic and provides unlimited quota.  Logic is broken for timezones behind UTC.  This is being tracked in upstream carto per https://github.com/CartoDB/cartodb/issues/13371")
       usage_metrics = CartoDB::GeocoderUsageMetrics.new(@user1.username, nil, @mock_redis)
       CartoDB::GeocoderUsageMetrics.stubs(:new).returns(usage_metrics)
       Geocoding.new(kind: 'high-resolution',
@@ -137,7 +137,7 @@ shared_examples_for "user models" do
     end
 
     it 'calculates the used geocoding quota for an organization' do
-      pending("Bloomberg does not use billing cycle logic and provides unlimited quota")
+      pending("Bloomberg does not use billing cycle logic and provides unlimited quota.  Logic is broken for timezones behind UTC.  This is being tracked in upstream carto per https://github.com/CartoDB/cartodb/issues/13371")
       usage_metrics_1 = CartoDB::GeocoderUsageMetrics.new(@org_user_1.username, @organization.name, @mock_redis)
       usage_metrics_2 = CartoDB::GeocoderUsageMetrics.new(@org_user_2.username, @organization.name, @mock_redis)
       # We are going to get the organization data show we could use both usage_metrics objects
@@ -163,7 +163,7 @@ shared_examples_for "user models" do
     end
 
     it 'calculates the used geocoder quota in the current billing cycle including empty requests' do
-      pending("Bloomberg does not use billing cycle logic and provides unlimited quota")
+      pending("Bloomberg does not use billing cycle logic and provides unlimited quota.  Logic is broken for timezones behind UTC.  This is being tracked in upstream carto per https://github.com/CartoDB/cartodb/issues/13371")
       usage_metrics = CartoDB::GeocoderUsageMetrics.new(@user1.username, nil, @mock_redis)
       CartoDB::GeocoderUsageMetrics.stubs(:new).returns(usage_metrics)
       usage_metrics.incr(:geocoder_here, :success_responses, 10, DateTime.current)
@@ -234,7 +234,7 @@ shared_examples_for "user models" do
     end
 
     it 'calculates the used here isolines quota in the current billing cycle' do
-      pending("Bloomberg does not use billing cycle logic and provides unlimited quota")
+      pending("Bloomberg does not use billing cycle logic and provides unlimited quota.  Logic is broken for timezones behind UTC.  This is being tracked in upstream carto per https://github.com/CartoDB/cartodb/issues/13371")
       usage_metrics = CartoDB::IsolinesUsageMetrics.new(@user1.username, nil, @mock_redis)
       CartoDB::IsolinesUsageMetrics.stubs(:new).returns(usage_metrics)
       usage_metrics.incr(:here_isolines, :isolines_generated, 10, DateTime.current)
@@ -244,7 +244,7 @@ shared_examples_for "user models" do
     end
 
     it 'calculates the used here isolines quota for an organization' do
-      pending("Bloomberg does not use billing cycle logic and provides unlimited quota")
+      pending("Bloomberg does not use billing cycle logic and provides unlimited quota.  Logic is broken for timezones behind UTC.  This is being tracked in upstream carto per https://github.com/CartoDB/cartodb/issues/13371")
       usage_metrics_1 = CartoDB::IsolinesUsageMetrics.new(@org_user_1.username, @organization.name, @mock_redis)
       usage_metrics_2 = CartoDB::IsolinesUsageMetrics.new(@org_user_2.username, @organization.name, @mock_redis)
       CartoDB::IsolinesUsageMetrics.stubs(:new).
@@ -257,7 +257,7 @@ shared_examples_for "user models" do
     end
 
     it 'calculates the used here isolines quota in the current billing cycle including empty requests' do
-      pending("Bloomberg does not use billing cycle logic and provides unlimited quota")
+      pending("Bloomberg does not use billing cycle logic and provides unlimited quota.  Logic is broken for timezones behind UTC.  This is being tracked in upstream carto per https://github.com/CartoDB/cartodb/issues/13371")
       usage_metrics = CartoDB::IsolinesUsageMetrics.new(@user1.username, nil, @mock_redis)
       CartoDB::IsolinesUsageMetrics.stubs(:new).returns(usage_metrics)
       usage_metrics.incr(:here_isolines, :isolines_generated, 10, DateTime.current)
@@ -367,7 +367,7 @@ shared_examples_for "user models" do
     end
 
     it 'calculates the used data observatory snapshot quota in the current billing cycle' do
-      pending("Bloomberg does not use billing cycle logic and provides unlimited quota")
+      pending("Bloomberg does not use billing cycle logic and provides unlimited quota.  Logic is broken for timezones behind UTC.  This is being tracked in upstream carto per https://github.com/CartoDB/cartodb/issues/13371")
       usage_metrics = CartoDB::ObservatorySnapshotUsageMetrics.new(@user1.username, nil, @mock_redis)
       CartoDB::ObservatorySnapshotUsageMetrics.stubs(:new).returns(usage_metrics)
       usage_metrics.incr(:obs_snapshot, :success_responses, 10, DateTime.current)
@@ -377,7 +377,7 @@ shared_examples_for "user models" do
     end
 
     it 'calculates the used data observatory snapshot quota for an organization' do
-      pending("Bloomberg does not use billing cycle logic and provides unlimited quota")
+      pending("Bloomberg does not use billing cycle logic and provides unlimited quota.  Logic is broken for timezones behind UTC.  This is being tracked in upstream carto per https://github.com/CartoDB/cartodb/issues/13371")
       usage_metrics_1 = CartoDB::ObservatorySnapshotUsageMetrics.new(@org_user_1.username, @organization.name, @mock_redis)
       usage_metrics_2 = CartoDB::ObservatorySnapshotUsageMetrics.new(@org_user_2.username, @organization.name, @mock_redis)
       CartoDB::ObservatorySnapshotUsageMetrics.stubs(:new).
@@ -390,7 +390,7 @@ shared_examples_for "user models" do
     end
 
     it 'calculates the used data observatory snapshot quota in the current billing cycle including empty requests' do
-      pending("Bloomberg does not use billing cycle logic and provides unlimited quota")
+      pending("Bloomberg does not use billing cycle logic and provides unlimited quota.  Logic is broken for timezones behind UTC.  This is being tracked in upstream carto per https://github.com/CartoDB/cartodb/issues/13371")
       usage_metrics = CartoDB::ObservatorySnapshotUsageMetrics.new(@user1.username, nil, @mock_redis)
       CartoDB::ObservatorySnapshotUsageMetrics.stubs(:new).returns(usage_metrics)
       usage_metrics.incr(:obs_snapshot, :success_responses, 10, DateTime.current)
@@ -420,7 +420,7 @@ shared_examples_for "user models" do
     end
 
     it 'calculates the used data observatory general quota in the current billing cycle' do
-      pending("Bloomberg does not use billing cycle logic and provides unlimited quota")
+      pending("Bloomberg does not use billing cycle logic and provides unlimited quota.  Logic is broken for timezones behind UTC.  This is being tracked in upstream carto per https://github.com/CartoDB/cartodb/issues/13371")
       usage_metrics = CartoDB::ObservatoryGeneralUsageMetrics.new(@user1.username, nil, @mock_redis)
       CartoDB::ObservatoryGeneralUsageMetrics.stubs(:new).returns(usage_metrics)
       usage_metrics.incr(:obs_general, :success_responses, 10, DateTime.current)
@@ -430,7 +430,7 @@ shared_examples_for "user models" do
     end
 
     it 'calculates the used data observatory general quota for an organization' do
-      pending("Bloomberg does not use billing cycle logic and provides unlimited quota")
+      pending("Bloomberg does not use billing cycle logic and provides unlimited quota.  Logic is broken for timezones behind UTC.  This is being tracked in upstream carto per https://github.com/CartoDB/cartodb/issues/13371")
       usage_metrics_1 = CartoDB::ObservatoryGeneralUsageMetrics.new(@org_user_1.username, @organization.name, @mock_redis)
       usage_metrics_2 = CartoDB::ObservatoryGeneralUsageMetrics.new(@org_user_2.username, @organization.name, @mock_redis)
       CartoDB::ObservatoryGeneralUsageMetrics.stubs(:new).
@@ -443,7 +443,7 @@ shared_examples_for "user models" do
     end
 
     it 'calculates the used data observatory general quota in the current billing cycle including empty requests' do
-      pending("Bloomberg does not use billing cycle logic and provides unlimited quota")
+      pending("Bloomberg does not use billing cycle logic and provides unlimited quota.  Logic is broken for timezones behind UTC.  This is being tracked in upstream carto per https://github.com/CartoDB/cartodb/issues/13371")
       usage_metrics = CartoDB::ObservatoryGeneralUsageMetrics.new(@user1.username, nil, @mock_redis)
       CartoDB::ObservatoryGeneralUsageMetrics.stubs(:new).returns(usage_metrics)
       usage_metrics.incr(:obs_general, :success_responses, 10, DateTime.current)
@@ -517,7 +517,7 @@ shared_examples_for "user models" do
     end
 
     it 'calculates the used mapzen routing quota in the current billing cycle' do
-      pending("Bloomberg does not use billing cycle logic and provides unlimited quota")
+      pending("Bloomberg does not use billing cycle logic and provides unlimited quota.  Logic is broken for timezones behind UTC.  This is being tracked in upstream carto per https://github.com/CartoDB/cartodb/issues/13371")
       usage_metrics = CartoDB::RoutingUsageMetrics.new(@user1.username, nil, @mock_redis)
       CartoDB::RoutingUsageMetrics.stubs(:new).returns(usage_metrics)
       usage_metrics.incr(:routing_mapzen, :total_requests, 10, DateTime.current)
@@ -529,7 +529,7 @@ shared_examples_for "user models" do
     end
 
     it 'calculates the used mapzen routing quota for an organization' do
-      pending("Bloomberg does not use billing cycle logic and provides unlimited quota")
+      pending("Bloomberg does not use billing cycle logic and provides unlimited quota.  Logic is broken for timezones behind UTC.  This is being tracked in upstream carto per https://github.com/CartoDB/cartodb/issues/13371")
       usage_metrics_1 = CartoDB::RoutingUsageMetrics.new(@org_user_1.username, @organization.name, @mock_redis)
       usage_metrics_2 = CartoDB::RoutingUsageMetrics.new(@org_user_2.username, @organization.name, @mock_redis)
       CartoDB::RoutingUsageMetrics.stubs(:new).
@@ -544,7 +544,7 @@ shared_examples_for "user models" do
     end
 
     it 'calculates the used mapzen routing quota in the current billing cycle including empty requests' do
-      pending("Bloomberg does not use billing cycle logic and provides unlimited quota")
+      pending("Bloomberg does not use billing cycle logic and provides unlimited quota.  Logic is broken for timezones behind UTC.  This is being tracked in upstream carto per https://github.com/CartoDB/cartodb/issues/13371")
       usage_metrics = CartoDB::RoutingUsageMetrics.new(@user1.username, nil, @mock_redis)
       CartoDB::RoutingUsageMetrics.stubs(:new).returns(usage_metrics)
       usage_metrics.incr(:routing_mapzen, :total_requests, 10, DateTime.current)
