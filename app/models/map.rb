@@ -144,7 +144,7 @@ class Map < Sequel::Model
     emptyDatasetName = Cartodb.config[:shared_empty_dataset_name]
     layers_on_map = data_layers
     layer_count = layers_on_map.count
-    layer_count -= 1 if layers_on_map.any?{ |layer| layer.options[:table_name] == emptyDatasetName }
+    layer_count -= 1 if layers_on_map.any?{ |layer| layer.options["table_name"] == emptyDatasetName }
 
     return false if self.user.max_layers && self.user.max_layers <= layer_count
     return false if self.user.viewer
