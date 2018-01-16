@@ -35,7 +35,7 @@ module Carto
        # Change the base url to match the proxy
        https_pos = uri.index('https')
        prefix = "http#{https_pos ? 's' : ''}://"
-       rv = uri.gsub(/^https?:\/\/[\w\.\:]+\//, '')
+       rv = uri.gsub(/^https?:\/\/[\w\.\-\:]+\//, '')
        rv = prefix + s3_proxy + '/' + rv
        # Remove any query parameters (items after '?')
        pos = rv.index('?')
