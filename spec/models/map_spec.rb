@@ -555,15 +555,15 @@ describe Map do
       end
 
       it 'should take shared_empty_dataset into account' do
-        emptyDatasetName = Cartodb.config[:shared_empty_dataset_name]
+        empty_dataset_name = Cartodb.config[:shared_empty_dataset_name]
         @map = Map.create(user_id: @user.id, table_id: @table.id)
         @map.reload
 
-        @layer = Layer.create(kind: 'carto', options: { :table_name => emptyDatasetName })
+        @layer = Layer.create(kind: 'carto', options: { :table_name => empty_dataset_name })
         @map.add_layer(@layer)
         @map.reload
 
-        for lyr in 1..@user.max_layers do
+        @user.max_layers.times do
           @map.can_add_layer(@user).should eq true
           @map.add_layer(Layer.new(kind: 'carto'))
           @map.reload
