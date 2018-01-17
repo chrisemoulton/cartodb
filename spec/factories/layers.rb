@@ -120,7 +120,10 @@ module Fixtures
       def v2_infowindow_light_template_fragment
         "<div class=\"cartodb-popup v2\">\n  <a href=\"#close\" class=\"cartodb-popup-close-button close\">x</a>\n  "\
         "<div class=\"cartodb-popup-content-wrapper\">\n    <div class=\"cartodb-popup-content\">\n      "\
-        "{{#content.fields}}\n        {{#title}}<h4>{{title}}</h4>{{/title}}\n        {{#value}}\n          "\
+        "{{#content.fields}}\n        "\
+        "{{#title}}\n        {{#alias}}\n        <h4>{{alias}}</h4>\n        {{/alias}}\n        "\
+        "{{^alias}}\n        <h4>{{title}}</h4>\n        {{/alias}}\n        {{/title}}\n        "\
+        "{{#value}}\n          "\
         "<p {{#type}}class=\"{{ type }}\"{{/type}}>{{{ value }}}</p>\n        {{/value}}\n        "\
         "{{^value}}\n          <p class=\"empty\">null</p>\n        {{/value}}\n      {{/content.fields}}\n    "\
         "</div>\n  </div>\n  <div class=\"cartodb-popup-tip-container\"></div>\n</div>\n"

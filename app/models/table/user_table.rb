@@ -381,7 +381,10 @@ class UserTable < Sequel::Model
       tags:         (tags.split(',') if tags),
       privacy:      UserTable::PRIVACY_VALUES_TO_TEXTS[default_privacy_value],
       user_id:      user.id,
-      kind:         kind
+      kind:         kind,
+      exportable:   esv.nil? ? true : esv.exportable,
+      export_geom:  esv.nil? ? true : esv.export_geom,
+      category:     esv.nil? ? nil : esv.category
     )
 
     member.store

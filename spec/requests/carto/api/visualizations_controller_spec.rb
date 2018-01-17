@@ -1123,7 +1123,9 @@ describe Carto::Api::VisualizationsController do
           {}, @headers
         last_response.status.should == 200
         overlays = JSON.parse(last_response.body)
-        overlays.length.should == 5
+        # The search overlay is hidden behind a feature the bbg_pro_ui flag in Bloomberg
+        #  Therefore this value is one lower than the carto upstream unit tests
+        overlays.length.should == 4
       end
 
     end
@@ -1569,15 +1571,33 @@ describe Carto::Api::VisualizationsController do
     end
 
     before(:each) do
+      # Clear any Typhoeus stub or they will persist in each test
+      Typhoeus::Expectation.clear
+
+      # Clear the request cache to obtain common data
+      CommonDataRedisCache.any_instance.stubs(:get).with(Cartodb.config[:common_data]['base_url'] + '/api/v1/viz?privacy=public&type=table')
+      CommonDataRedisCache.any_instance.stubs(:get).with(Cartodb.config[:common_data]['base_url'] + '/api/v1/viz?privacy=public&type=table&per_page=100000')
+
       @user = FactoryGirl.create(:valid_user)
       login(@user)
     end
 
     after(:each) do
+      # Clear any Typhoeus stub or they will persist in each test
+      Typhoeus::Expectation.clear
+
       @user.destroy
     end
 
     it 'orders remotes by size with external sources size' do
+      # Bloomberg index behavior differs from carto and expects common data user 
+      # to have tables matching remote tables.  Therefore we need to stub the 
+      # call to setup the remote tables in the common data user
+
+      # Stub the call to obtain common data user data
+      response = Typhoeus::Response.new(code: 200, body: '{ "visualizations": [ { "name": "visu1" }, { "name": "visu2" }, { "name": "vsiu3" } ] }')
+      Typhoeus.stub(Regexp.new(Cartodb.config[:common_data]['base_url'])).and_return(response)
+
       post api_v1_visualizations_create_url(api_key: @user.api_key),
            factory(@user, locked: true, type: 'remote', display_name: 'visu1').to_json, @headers
       vis_1_id = JSON.parse(last_response.body).fetch('id')
@@ -1614,7 +1634,75 @@ describe Carto::Api::VisualizationsController do
       collection[2]['id'].should == vis_3_id
     end
 
+    it 'Bloomberg - removes all remote visualizations not owned by common data user' do
+      # Stub the call to obtain common data user data
+      response = Typhoeus::Response.new(code: 200, body: '{ "visualizations": [ ] }')
+      Typhoeus.stub(Regexp.new(Cartodb.config[:common_data]['base_url'])).and_return(response)
+
+      post api_v1_visualizations_create_url(api_key: @user.api_key),
+           factory(@user, locked: true, type: 'remote', display_name: 'visu1').to_json, @headers
+      vis_1_id = JSON.parse(last_response.body).fetch('id')
+      Carto::ExternalSource.new(
+        visualization_id: vis_1_id,
+        import_url: 'http://www.fake.com',
+        rows_counted: 1,
+        size: 100).save
+
+      post api_v1_visualizations_create_url(api_key: @user.api_key),
+           factory(@user, locked: true, type: 'remote', display_name: 'visu2').to_json, @headers
+      vis_2_id = JSON.parse(last_response.body).fetch('id')
+      Carto::ExternalSource.new(
+        visualization_id: vis_2_id,
+        import_url: 'http://www.fake.com',
+        rows_counted: 1,
+        size: 200).save
+
+      post api_v1_visualizations_create_url(api_key: @user.api_key),
+           factory(@user, locked: true, type: 'remote', display_name: 'visu3').to_json, @headers
+      vis_3_id = JSON.parse(last_response.body).fetch('id')
+      Carto::ExternalSource.new(
+        visualization_id: vis_3_id,
+        import_url: 'http://www.fake.com',
+        rows_counted: 1, size: 10).save
+
+      get api_v1_visualizations_index_url(api_key: @user.api_key, types: 'remote', order: 'size'), {}, @headers
+      last_response.status.should == 200
+      response    = JSON.parse(last_response.body)
+      collection  = response.fetch('visualizations')
+      collection.length.should eq 0
+    end
+
+    it 'Bloomberg - remote visualizations not removed if owned by common data user' do
+      # Stub the call to obtain common data user data
+      response = Typhoeus::Response.new(code: 200, body: '{ "visualizations": [ { "name": "visu1" } ] }')
+      Typhoeus.stub(Regexp.new(Cartodb.config[:common_data]['base_url'])).and_return(response)
+
+      # Start user steps
+      post api_v1_visualizations_create_url(api_key: @user.api_key),
+           factory(@user, locked: true, type: 'remote', display_name: 'visu1').to_json, @headers
+      vis_1_id = JSON.parse(last_response.body).fetch('id')
+      Carto::ExternalSource.new(
+        visualization_id: vis_1_id,
+        import_url: 'http://www.fake.com',
+        rows_counted: 1,
+        size: 100).save
+
+      get api_v1_visualizations_index_url(api_key: @user.api_key, types: 'remote', order: 'size'), {}, @headers
+      last_response.status.should == 200
+      response    = JSON.parse(last_response.body)
+      collection  = response.fetch('visualizations')
+      collection.length.should eq 1
+      collection[0]['id'].should == vis_1_id
+    end
+
     it 'mixed types search should filter only remote without display name' do
+      # Bloomberg index behavior differs from carto and expects common data user 
+      # to have tables matching remote tables.  Therefore we need to stub the 
+      # call to setup the remote tables in the common data user
+
+      # Stub the call to obtain common data user data
+      response = Typhoeus::Response.new(code: 200, body: '{ "visualizations": [ { "name": "visu2" }, { "name": "vsiu3" } ] }')
+      Typhoeus.stub(Regexp.new(Cartodb.config[:common_data]['base_url'])).and_return(response)
 
       post api_v1_visualizations_create_url(api_key: @user.api_key),
            factory(@user, locked: true, type: 'table').to_json, @headers

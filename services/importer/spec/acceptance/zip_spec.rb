@@ -16,6 +16,12 @@ describe 'zip regression tests' do
   include_context "cdb_importer schema"
   include_context "no stats"
 
+  let :ogr2ogr2_options do
+    {
+      ogr2ogr_binary: Cartodb.config[:ogr2ogr]['binary']
+    }
+  end
+
   before(:all) do
     @user = create_user
     @user.save
@@ -34,6 +40,7 @@ describe 'zip regression tests' do
                                log: CartoDB::Importer2::Doubles::Log.new(@user),
                                user: @user
                              })
+    runner.loader_options = ogr2ogr2_options
     runner.run
 
     runner.results.length.should eq 0
@@ -48,6 +55,7 @@ describe 'zip regression tests' do
                                log: CartoDB::Importer2::Doubles::Log.new(@user),
                                user: @user
                              })
+    runner.loader_options = ogr2ogr2_options
     runner.run
 
     runner.results.length.should eq 1
@@ -62,6 +70,7 @@ describe 'zip regression tests' do
                                log: CartoDB::Importer2::Doubles::Log.new(@user),
                                user: @user
                              })
+    runner.loader_options = ogr2ogr2_options
     runner.run
 
     runner.results.select(&:success?).length.should eq 2
@@ -81,6 +90,7 @@ describe 'zip regression tests' do
                                log: CartoDB::Importer2::Doubles::Log.new(@user),
                                user: @user
                              })
+    runner.loader_options = ogr2ogr2_options
     runner.run
 
     runner.results.select(&:success?).length.should eq ::CartoDB::Importer2::Runner::MAX_TABLES_PER_IMPORT
@@ -101,6 +111,7 @@ describe 'zip regression tests' do
                                log: CartoDB::Importer2::Doubles::Log.new(@user),
                                user: @user
                              })
+    runner.loader_options = ogr2ogr2_options
     runner.run
 
     runner.results.select(&:success?).length.should eq 1
@@ -120,6 +131,7 @@ describe 'zip regression tests' do
                                log: CartoDB::Importer2::Doubles::Log.new(@user),
                                user: @user
                              })
+    runner.loader_options = ogr2ogr2_options
     runner.run
 
     runner.results.select(&:success?).length.should eq 1
@@ -140,6 +152,7 @@ describe 'zip regression tests' do
                                                      downloader: downloader,
                                                      log: CartoDB::Importer2::Doubles::Log.new(@user),
                                                      user: @user)
+      runner.loader_options = ogr2ogr2_options
       runner.run
 
       runner.results.length.should eq 1
@@ -163,6 +176,7 @@ describe 'zip regression tests' do
                                                      downloader: downloader,
                                                      log: CartoDB::Importer2::Doubles::Log.new(@user),
                                                      user: @user)
+      runner.loader_options = ogr2ogr2_options
       runner.run
 
       runner.results.length.should eq 4

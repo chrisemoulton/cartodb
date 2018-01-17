@@ -158,7 +158,12 @@ class Carto::Map < ActiveRecord::Base
   end
 
   def can_add_layer?(user)
-    return false if user.max_layers && user.max_layers <= data_layers.count
+    empty_dataset_name = Cartodb.config[:shared_empty_dataset_name]
+    layers_on_map = data_layers
+    layer_count = layers_on_map.count
+    layer_count -= 1 if layers_on_map.any?{ |layer| layer.options[:table_name] == empty_dataset_name }
+
+    return false if user.max_layers && user.max_layers <= layer_count
 
     visualization.writable_by?(user)
   end
@@ -203,8 +208,8 @@ class Carto::Map < ActiveRecord::Base
     self.options ||= {}
     options[:dashboard_menu] = true if options[:dashboard_menu].nil?
     options[:layer_selector] = false if options[:layer_selector].nil?
-    options[:legends] = legends if options[:legends].nil?
-    options[:scrollwheel] = scrollwheel if options[:scrollwheel].nil?
+    options[:legends] = (legends || true) if options[:legends].nil?
+    options[:scrollwheel] = (scrollwheel || true) if options[:scrollwheel].nil?
 
     options
   end

@@ -40,7 +40,8 @@ module CartoDB
       data = {
         id:         object.id,
         name:       object.name,
-        updated_at: object.updated_at
+        updated_at: object.updated_at,
+        auth_tokens: ::User.where(id: object.user_id).first.try(:get_auth_tokens)
       }
       if object[:permission_id].present? && !object.permission.nil?
         data[:permission] = CartoDB::PermissionPresenter.new(object.permission).to_poro.select do |key, _val|

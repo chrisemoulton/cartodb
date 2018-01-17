@@ -269,6 +269,8 @@ module Carto
         render :json => '{"visualizations":' + layers.to_json + ' ,"total_entries":' + layers.size.to_s + '}'
       end
 
+      # NOTE: Only user auth_tokens are included for performance
+      # May not work with shared maps (missing organization token)
       def list
         user_id = current_user.id
         types = params.fetch(:types, Array.new).split(',')
@@ -288,6 +290,10 @@ module Carto
         likedCondition = only_liked ? 'WHERE likes > 0' : ''
         lockedCondition = only_locked ? 'AND v.locked=true' : ''
         categoryCondition = ''
+        if types == ["'derived'"] # is_maps
+          user_join = 'LEFT JOIN users AS u ON u.id=v.user_id'
+          auth_tokens_column = ', ARRAY[u.auth_token] AS auth_tokens'
+        end
         parent_category = params.fetch(:parent_category, nil)
         if parent_category != nil
           categoryCondition = "AND (v.category = ? OR v.category = ANY(get_viz_child_category_ids(?)))"
@@ -323,13 +329,14 @@ module Carto
         query = "
             SELECT * FROM (
               SELECT results.*, (SELECT COUNT(*) FROM likes WHERE actor=? AND subject=results.id) AS likes FROM (
-                SELECT v.id, v.type, false AS needs_cd_import, v.name, v.display_name, v.description, v.tags, v.category, v.source, v.updated_at, v.locked, upper(v.privacy) AS privacy, ut.id AS table_id, ut.name_alias, edis.id IS NOT NULL AS from_external_source
+                SELECT v.id, v.type, false AS needs_cd_import, v.name, v.display_name, v.description, v.tags, v.category, v.source, v.updated_at, v.locked, upper(v.privacy) AS privacy, ut.id AS table_id, ut.name_alias, edis.id IS NOT NULL AS from_external_source #{auth_tokens_column}
                   FROM visualizations AS v
                       LEFT JOIN external_sources AS es ON es.visualization_id = v.id
                       LEFT JOIN visualizations AS v2 ON v2.user_id=v.user_id AND v.type='remote' AND v2.type='table' AND v2.name=v.name
                       LEFT JOIN user_tables AS ut ON ut.map_id=v.map_id
                       LEFT JOIN synchronizations AS s ON s.visualization_id = v.id
                       LEFT JOIN external_data_imports AS edis ON edis.synchronization_id = s.id
+                      #{user_join}
                   WHERE v2.id IS NULL AND v.user_id=? AND v.type IN (#{typeList}) #{lockedCondition} #{sharedEmptyDatasetCondition} #{categoryCondition} #{tagCondition}
                 ) AS results
             ) AS results2
@@ -355,12 +362,16 @@ module Carto
         type = params.fetch(:type, 'datasets')
         typeList = (type == 'datasets') ? "'table','remote'" : "'derived'"
         categoryType = (type == 'datasets') ? 1 : 2
+        samples_user_id = sample_maps_user.id if categoryType == 2 && sample_maps_user
+        sample_type_counts = Object.new
 
         is_common_data_user = user_id == common_data_user.id
         union_common_data = !is_common_data_user && (type == 'datasets')
 
         sharedEmptyDatasetCondition = is_common_data_user ? "" : "AND v.name <> '#{Cartodb.config[:shared_empty_dataset_name]}'"
+        lockedCondition = samples_user_id ? "AND v.locked=true" : ""
 
+        #type counts
         query = "SELECT
               COUNT(*) AS all,
               SUM(CASE WHEN likes > 0 THEN 1 ELSE 0 END) AS liked,
@@ -387,10 +398,29 @@ module Carto
         query += ") AS results2"
         type_counts = Sequel::Model.db.fetch(query, *args).all
 
+        #sample maps counts
+        if samples_user_id
+          user_id = samples_user_id
+          query = "SELECT
+                COUNT(*) AS all,
+                SUM(CASE WHEN likes > 0 THEN 1 ELSE 0 END) AS liked
+              FROM (
+                SELECT results.*, (SELECT COUNT(*) FROM likes WHERE actor=? AND subject=results.id) AS likes FROM (
+                  SELECT v.id, v.type, v.category, v.locked
+                    FROM visualizations AS v
+                    WHERE v.user_id=? AND v.type IN (#{typeList}) AND v.locked=true
+                  ) AS results"
+          args = [user_id, user_id]
+
+          query += ") AS results2"
+          sample_type_counts = Sequel::Model.db.fetch(query, *args).all[0]
+        end
+
+        #category counts
         query = "SELECT categories.id, categories.parent_id, (
               (SELECT COUNT(*) FROM visualizations AS v
                   LEFT JOIN visualizations AS v2 ON v2.user_id=v.user_id AND v.type='remote' AND v2.type='table' AND v2.name=v.name
-                WHERE v2.id IS NULL AND v.user_id=? AND v.type IN (#{typeList}) #{sharedEmptyDatasetCondition} AND v.category=categories.id) + "
+                WHERE v2.id IS NULL AND v.user_id=? AND v.type IN (#{typeList}) #{sharedEmptyDatasetCondition} #{lockedCondition} AND v.category=categories.id) + "
 
         if union_common_data
           query += "(SELECT COUNT(*) FROM visualizations AS v
@@ -419,7 +449,7 @@ module Carto
           end
         end
 
-        render :json => '{"types":' + type_counts[0].to_json + ' ,"categories":' + category_counts.to_json + '}'
+        render :json => '{"types":' + type_counts[0].to_json + ', "sample_types":' + sample_type_counts.to_json + ' ,"categories":' + category_counts.to_json + '}'
       end
 
 

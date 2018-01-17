@@ -176,7 +176,9 @@ module CartoDB
       end
 
       # Cartodb functions
-      def load_cartodb_functions(statement_timeout = nil, cdb_extension_target_version = nil)
+      def load_cartodb_functions(statement_timeout = nil,
+                                 cdb_extension_target_version = nil,
+                                 load_cartodb_extension = true)
         add_python
 
         # Install dependencies of cartodb extension
@@ -200,7 +202,9 @@ module CartoDB
           end
         end
 
-        upgrade_cartodb_postgres_extension(statement_timeout, cdb_extension_target_version)
+        if load_cartodb_extension
+          upgrade_cartodb_postgres_extension(statement_timeout, cdb_extension_target_version)
+        end
 
         rebuild_quota_trigger
       end
@@ -247,7 +251,7 @@ module CartoDB
       # Centralized method to provide the (ordered) search_path
       def self.build_search_path(user_schema, quote_user_schema = true)
         quote_char = quote_user_schema ? "\"" : ""
-        "#{quote_char}#{user_schema}#{quote_char}, #{SCHEMA_CARTODB}, #{SCHEMA_CDB_DATASERVICES_API}, '#{SCHEMA_COMMON_DATA}', #{SCHEMA_PUBLIC}"
+        "#{quote_char}#{user_schema}#{quote_char}, #{SCHEMA_CARTODB}, #{SCHEMA_CDB_DATASERVICES_API}, \"#{SCHEMA_COMMON_DATA}\", #{SCHEMA_PUBLIC}"
       end
 
       def set_database_search_path

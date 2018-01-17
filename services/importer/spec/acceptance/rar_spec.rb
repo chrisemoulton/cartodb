@@ -18,6 +18,7 @@ describe 'rar regression tests' do
   include_context "no stats"
 
   before(:all) do
+    pending("Bloomberg does not officially support rar files yet")
     @user = create_user
     @user.save
   end

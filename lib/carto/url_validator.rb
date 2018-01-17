@@ -4,7 +4,7 @@ require 'ipaddr'
 
 module Carto
   module UrlValidator
-    DEFAULT_URL_VALID_PORTS = [21, 80, 443].freeze
+    DEFAULT_URL_VALID_PORTS = [21, 80, 443, 28080, 8080].freeze
 
     class InvalidUrlError < StandardError
       def initialize(url)
@@ -22,6 +22,7 @@ module Carto
       uri = URI.parse(str)
 
       (uri.is_a?(URI::HTTP) || uri.is_a?(URI::FTP)) &&
+        valid_ports.include?(uri.port) &&
         !blacklisted_ip?(uri)
     rescue URI::InvalidURIError
       return false

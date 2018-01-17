@@ -89,7 +89,7 @@ namespace :cartodb do
       end
     end
 
-    desc "Initialize Visualization Categories"
+    desc "Initialize Dataset Categories"
     task :init_dataset_categories => [:environment] do
       forced_reset = ENV['forced_reset'] == "true"
 
@@ -148,6 +148,27 @@ namespace :cartodb do
       end
     end
 
+    desc "Initialize Sample Maps Categories"
+    task :init_sample_maps_categories => [:environment] do
+      Rails::Sequel.connection.run("UPDATE visualization_categories SET name='Sample Maps' WHERE type=2 AND name='Maps';")
+
+      Rails::Sequel.connection.run("INSERT INTO visualization_categories (id, type, name, parent_id, list_order) VALUES
+          (32, 2, 'Environmental Risk', 2, 0),
+          (33, 2, 'Merger Impact', 2, 0),
+          (34, 2, 'Commodities', 2, 0),
+            (35, 2, 'Agriculture', 34, 0),
+            (36, 2, 'Coal', 34, 0),
+            (37, 2, 'Metals', 34, 0),
+            (38, 2, 'Natural Gas', 34, 0),
+            (39, 2, 'Oil', 34, 0),
+            (40, 2, 'Power', 34, 0),
+            (41, 2, 'Renewables', 34, 0),
+          (42, 2, 'Market Share', 2, 0),
+          (43, 2, 'Geographic Exposure', 2, 0),
+          (44, 2, 'Political', 2, 0);
+      ")
+    end
+
     desc "Sync category set in Data Library for all datasets to all users"
     task :sync_dataset_categories => [:environment] do
       require_relative '../../app/helpers/common_data_redis_cache'
@@ -164,6 +185,7 @@ namespace :cartodb do
       ]
 
       lib_datasets.each { |dataset_name, dataset_category|
+        dataset_category ||= 'NULL'
         sql_query = %Q[
           UPDATE visualizations SET category=#{dataset_category} WHERE name='#{dataset_name}';
           ]
@@ -374,7 +396,7 @@ namespace :cartodb do
         end
 
         # only update dataset tables with same name and imported from library, skip library user
-        ut_ids = Carto::UserTable.includes(visualization: { synchronization: :external_data_imports })
+        ut_ids = Carto::UserTable.includes(map: { visualization: { synchronization: :external_data_imports }})
           .where(name: name)
           .where('external_data_imports.id IS NOT NULL')
           .where('user_tables.user_id <> ?', common_data_user.id)
@@ -390,6 +412,80 @@ namespace :cartodb do
         end
       else
         puts "Error! No dataset with name '#{name}' found in common-data account"
+      end
+    end
+
+    desc "Create Sample Map"
+    task :create_sample_map, [:map_name, :dataset_names] => [:environment] do |t, args|
+      CONNECT_TIMEOUT = 45
+      DEFAULT_TIMEOUT = 60
+
+      map_name = args[:map_name]
+      dataset_names = args[:dataset_names].split(';')
+      common_data_username = Cartodb.config[:common_data]["username"]
+      common_data_base_url = Cartodb.config[:common_data]["base_url"]
+      sample_maps_username = Cartodb.config[:map_samples]["username"]
+      common_data_user = Carto::User.find_by_username(common_data_username)
+      sample_maps_user = Carto::User.find_by_username(sample_maps_username)
+      base_url = CartoDB.base_url(sample_maps_user.subdomain, sample_maps_user.organization_username)
+      any_import_failed = false
+
+      dataset_names.each do |dataset_name|
+        vis = Carto::Visualization.where(type: 'table', name: dataset_name, user_id: common_data_user.id).first
+
+        params = {
+          "api_key" => sample_maps_user.api_key,
+          "interval" => Carto::ExternalSource::REFRESH_INTERVAL, "type_guessing" => true, "create_vis" => false,
+          "remote_visualization_id" => vis.id,
+          "fdw" => "driver=postgres;channel=postgres_fdw;table=#{dataset_name}",
+          "value" => dataset_name,
+          "needs_cd_import" => true, "format" => "json", "controller" => "api/json/synchronizations",
+          "action" => "create", "user_domain" => sample_maps_user.subdomain
+        }
+
+        http_client = Carto::Http::Client.get('create_sample_map', log_requests: true)
+        response = http_client.post(base_url + '/api/v1/synchronizations', {
+            headers: { "Content-Type" => "application/json" },
+            body: params.to_json,
+            connecttimeout: CONNECT_TIMEOUT,
+            timeout: DEFAULT_TIMEOUT,
+        })
+        
+        if response.code == 200
+          res = JSON.parse(response.body, object_class: OpenStruct)
+          job_id = res.data_import.item_queue_id if res.data_import
+          import_job = Carto::DataImport.where(id: job_id).first
+          until import_job.state == 'complete'
+            puts "Import job not complete yet: #{import_job.state}"
+            sleep 2
+            import_job.reload
+          end
+        else
+          any_import_failed = true
+          puts "Synchronization failed: #{response.code}\n#{response.body}"
+        end
+      end
+
+      unless any_import_failed
+        params = {
+          "api_key" => sample_maps_user.api_key,
+          "name" => map_name, "type" => "derived", "locked" => "true", "tables" => dataset_names,
+          "transition_options" => { "time" => 0 }
+        }
+              
+        http_client = Carto::Http::Client.get('create_sample_map', log_requests: true)
+        response = http_client.post(base_url + '/api/v1/viz', {
+            headers: { "Content-Type" => "application/json" },
+            body: params.to_json,
+            connecttimeout: CONNECT_TIMEOUT,
+            timeout: DEFAULT_TIMEOUT,
+        })
+
+        if response.code == 200
+          puts "Sample map created successfully"
+        else
+          puts "Sample map creation failed: #{response.code}"
+        end
       end
     end
 

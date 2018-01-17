@@ -56,6 +56,10 @@ module FrontendConfigHelper
       config[:shared_empty_dataset_name] = Cartodb.config[:shared_empty_dataset_name]
     end
 
+    if Cartodb.config[:map_samples].present?
+      config[:sample_maps_username] = Cartodb.config[:map_samples]["username"]
+    end
+
     config.to_json
   end
 end
