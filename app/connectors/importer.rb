@@ -356,21 +356,31 @@ module CartoDB
             # The alternative is to do this check in rails, but it'll require inspecting the .carto.gpkg
             #  in editor and then again in the resque
             common_data_config = Cartodb.config[:common_data]
-            common_data_base_url = common_data_config['base_url']
-            common_data_username = common_data_config['username']
-            common_data_user = Carto::User.where(username: common_data_username).first
+            common_data_base_url = common_data_config['base_url'] if !common_data_config.nil?
+
+            if common_data_base_url.nil?
+              raise CartoDB::Importer2::GenericImportError.new("Common data base_url not configured for visualizations")
+            end
 
             params = {type: 'table', privacy: 'public'}
+            if name.nil?
+              raise CartoDB::Importer2::GenericImportError.new("Dataset not provided for remote visualization")
+            end
             params[:name] = name if !name.nil?
+
             # We set user_domain to nil to avoid duplication in the url for subdomainfull urls. Ie. user.carto.com/u/cartodb/...
             params[:user_domain] = nil
             visualizations_api_url = common_data_base_url + "/api/v1/viz?#{params.to_query}"
             table_registrar.user.load_common_data(visualizations_api_url)
 
-
             remote_vis = Carto::Visualization.where(type: 'remote', name: name, user_id: table_registrar.user.id).first
+            unless remote_vis
+              raise CartoDB::Importer2::GenericImportError.new("Failed to create remote visualization")
+            end
+
             # Create the external data import
-            ExternalDataImport.new(data_import.id, CartoDB::Visualization::ExternalSource.where(visualization_id: remote_vis.id).first.id, data_import.synchronization_id).save
+            external_source_id = CartoDB::Visualization::ExternalSource.where(visualization_id: remote_vis.id).first.id
+            ExternalDataImport.new(data_import.id, external_source_id, data_import.synchronization_id).save
           end
 
           # Check if table already exists
