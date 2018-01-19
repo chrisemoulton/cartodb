@@ -16,8 +16,7 @@ module Carto
       url = sql_api_query_url(query, table_name, user_table.user, privacy(user_table), format)
       exported_file = "#{folder}/#{table_name}.#{format}"
 
-      @http_client.get_file(url, exported_file, ssl_verifypeer: false, ssl_verifyhost: 0)
-
+      file = @http_client.get_file(url, exported_file, ssl_verifypeer: false, ssl_verifyhost: 0)
       # Hack for Samples 2.0 - Save As
       if(format == 'gpkg')
         # Verify if the data is remote or if it is local
@@ -43,8 +42,13 @@ module Carto
           # does not honor .carto.gpkg format at this time
           
           File.rename(exported_file, "#{folder}/#{table_name}.carto.gpkg")
+          # Need to re-create the file object for return
+          file = File.new("#{folder}/#{table_name}.carto.gpkg")
         end
       end
+
+      # Make sure to return the file
+      file
     end
 
     def export_visualization_tables(visualization, user, dir, format, user_tables_ids: nil)
