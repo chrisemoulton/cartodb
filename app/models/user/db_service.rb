@@ -204,9 +204,9 @@ module CartoDB
 
         if load_cartodb_extension
           upgrade_cartodb_postgres_extension(statement_timeout, cdb_extension_target_version)
+          rebuild_quota_trigger
         end
 
-        rebuild_quota_trigger
       end
 
       def rebuild_quota_trigger
