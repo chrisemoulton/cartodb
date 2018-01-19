@@ -178,7 +178,8 @@ module CartoDB
       # Cartodb functions
       def load_cartodb_functions(statement_timeout = nil,
                                  cdb_extension_target_version = nil,
-                                 load_cartodb_extension = true)
+                                 load_cartodb_extension = true,
+                                 rebuild_quota = true)
         add_python
 
         # Install dependencies of cartodb extension
@@ -204,9 +205,11 @@ module CartoDB
 
         if load_cartodb_extension
           upgrade_cartodb_postgres_extension(statement_timeout, cdb_extension_target_version)
-          rebuild_quota_trigger
         end
 
+        if rebuild_quota
+          rebuild_quota_trigger
+        end
       end
 
       def rebuild_quota_trigger
