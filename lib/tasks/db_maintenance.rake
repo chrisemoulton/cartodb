@@ -278,11 +278,7 @@ namespace :cartodb do
         begin
           log(sprintf("Trying on %-#{20}s %-#{20}s (%-#{4}s/%-#{4}s)...", user.username, user.database_name, i+1, count), task_name, database_host)
           # Only load cartodb extensions once per database, i.e. for dedicated users and org owners
-          load_cartodb_extension = user.account_type == '[DEDICATED]' || user.organization_owner?
-          if load_cartodb_extension
-            log(sprintf("Loading cartodb extension and rebuild quota on %-#{20}s %-#{20}s (%-#{4}s/%-#{4}s)...", user.username, user.database_name, i+1, count), task_name, database_host)
-          end
-          user.db_service.load_cartodb_functions(statement_timeout, extension_version, load_cartodb_extension, load_cartodb_extension)
+          user.db_service.load_cartodb_functions(statement_timeout, extension_version)
           log(sprintf("OK %-#{20}s %-#{20}s (%-#{4}s/%-#{4}s)", user.username, user.database_name, i+1, count), task_name, database_host)
           sleep(sleep)
         rescue => e
