@@ -377,11 +377,12 @@ module CartoDB
             unless remote_vis
               raise CartoDB::Importer2::GenericImportError.new("Failed to create remote visualization")
             end
-
-            # Create the external data import
-            external_source_id = CartoDB::Visualization::ExternalSource.where(visualization_id: remote_vis.id).first.id
-            ExternalDataImport.new(data_import.id, external_source_id, data_import.synchronization_id).save
           end
+
+          # Create the external data import
+          # This needs to always happen to make sure visualization flags are copied
+          external_source_id = CartoDB::Visualization::ExternalSource.where(visualization_id: remote_vis.id).first.id
+          ExternalDataImport.new(data_import.id, external_source_id, data_import.synchronization_id).save
 
           # Check if table already exists
           unless Carto::UserTable.where(user_id: table_registrar.user.id, name: name).exists?
