@@ -252,7 +252,7 @@ namespace :cartodb do
     end
 
     desc 'Install/upgrade CARTODB SQL functions - only organization owners for Bloomberg merge code release'
-    task :load_functions_bbg, [:database_host, :version, :num_threads, :thread_sleep, :sleep, :statement_timeout] => :environment do |task_name, args|
+    task :load_functions_for_dedicated_and_org_owners_only, [:database_host, :version, :num_threads, :thread_sleep, :sleep, :statement_timeout] => :environment do |task_name, args|
       # Send this as string, not as number
       extension_version = args[:version].blank? ? nil : args[:version]
       database_host = args[:database_host].blank? ? nil : args[:database_host]
@@ -274,7 +274,7 @@ namespace :cartodb do
       else
         count = ::User.where(database_host: database_host).count
       end
-      execute_on_users_with_index(task_name, Proc.new { |user, i|
+      execute_on_dedicated_users_or_organization_owners_with_index(task_name, Proc.new { |user, i|
         begin
           log(sprintf("Trying on %-#{20}s %-#{20}s (%-#{4}s/%-#{4}s)...", user.username, user.database_name, i+1, count), task_name, database_host)
           # Only load cartodb extensions once per database, i.e. for dedicated users and org owners
@@ -875,6 +875,61 @@ namespace :cartodb do
       puts end_message
       log(end_message, task_name, database_host)
     end
+
+    # Executes a ruby code proc/block on all existing users who are dedicated or organization owners, outputting some info
+    # @param task_name string
+    # @param block Proc
+    # @example:
+    # execute_on_dedicated_users_or_organization_owners_with_index(:populate_new_fields.to_s, Proc.new { |user, i| ... })
+    def execute_on_dedicated_users_or_organization_owners_with_index(task_name, block, num_threads=1, sleep_time=0.1, database_host=nil)
+      puts 'actest'
+      if database_host.nil?
+        puts "NO database host"
+        count = ::User.with_sql("select users.* from users, organizations where users.organization_id=organizations.id and (users.account_type = '[DEDICATED]' OR users.id = organizations.owner_id)").count
+      else
+        puts "database host"
+        count = ::User.with_sql("select users.* from users, organizations where users.organization_id=organizations.id and database_host = ? and (users.account_type = '[DEDICATED]' OR users.id = organizations.owner_id)", database_host).count
+      end
+
+      start_message = ">Running #{task_name} for #{count} users"
+      puts start_message
+      log(start_message, task_name, database_host)
+      if database_host.nil?
+        puts "Detailed log stored at log/rake_db_maintenance_#{task_name}.log"
+      else
+        puts "Detailed log stored at log/rake_db_maintenance_#{task_name}_#{database_host}.log"
+      end
+
+      thread_pool = ThreadPool.new(num_threads, sleep_time)
+
+      if database_host.nil?
+        ::User.with_sql("select users.* from users, organizations where users.organization_id=organizations.id and (users.account_type = '[DEDICATED]' OR users.id = organizations.owner_id) order by created_at asc").each_with_index do |user, i|
+          thread_pool.schedule do
+            if i % 100 == 0
+              puts "PROGRESS: #{i}/#{count} users queued"
+            end
+            block.call(user, i)
+          end
+        end
+      else
+        ::User.with_sql("select users.* from users, organizations where users.organization_id=organizations.id and database_host = ? and (users.account_type = '[DEDICATED]' OR users.id = organizations.owner_id) order asc", database_host).each_with_index do |user, i|
+          thread_pool.schedule do
+            if i % 100 == 0
+              puts "PROGRESS: #{i}/#{count} users queued"
+            end
+            block.call(user, i)
+          end
+        end
+      end
+
+      at_exit { thread_pool.shutdown }
+
+      puts "PROGRESS: #{count}/#{count} users queued"
+      end_message = "\n>Finished #{task_name}\n"
+      puts end_message
+      log(end_message, task_name, database_host)
+    end
+
 
     def log(entry, task_name, filename_suffix='')
       if filename_suffix.nil? || filename_suffix.empty?
