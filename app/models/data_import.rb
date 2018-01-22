@@ -112,6 +112,11 @@ class DataImport < Sequel::Model
   TYPE_QUERY          = 'query'
   TYPE_DATASOURCE     = 'datasource'
 
+  # Allowed relation types for representation of data in database
+  RELATION_TYPE_TABLE = 'table'
+  RELATION_TYPE_VIEW = 'view'
+  ALLOWED_RELATION_TYPES = [RELATION_TYPE_TABLE, RELATION_TYPE_VIEW]
+
   @downloader = nil
   @unpacker = nil
 
@@ -561,8 +566,13 @@ class DataImport < Sequel::Model
     taken_names = Carto::Db::UserSchema.new(current_user).table_names
     table_name = Carto::ValidTableNameProposer.new.propose_valid_table_name(name, taken_names: taken_names)
     # current_user.db_services.in_database.run(%{CREATE TABLE #{table_name} AS #{query}})
+    relation_type_name = case self.relation_type
+      when RELATION_TYPE_TABLE then 'TABLE'
+      when RELATION_TYPE_VIEW  then 'VIEW'
+      else 'TABLE'
+    end
     current_user.db_service.in_database_direct_connection(statement_timeout: DIRECT_STATEMENT_TIMEOUT) do |user_direct_conn|
-        user_direct_conn.run(%{CREATE TABLE #{table_name} AS #{query}})
+        user_direct_conn.run(%{CREATE #{relation_type_name} #{table_name} AS #{query}})
     end
     if current_user.over_disk_quota?
       log.append "Over storage quota. Dropping table #{table_name}"
