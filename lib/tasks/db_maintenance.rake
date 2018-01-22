@@ -235,7 +235,7 @@ namespace :cartodb do
       end
       execute_on_users_with_index(task_name, Proc.new { |user, i|
         begin
-          log(sprintf("Trying on %-#{20}s %-#{20}s (%-#{4}s/%-#{4}s)...", user.username, user.database_name, i+1, count), task_name, database_host) # Only load cartodb extensions once per database, i.e. for dedicated users and org owners
+          log(sprintf("Trying on %-#{20}s %-#{20}s (%-#{4}s/%-#{4}s)...", user.username, user.database_name, i+1, count), task_name, database_host)
           # Only load cartodb extensions once per database, i.e. for dedicated users and org owners
           load_cartodb_extension = user.account_type == '[DEDICATED]' || user.organization_owner?
           if load_cartodb_extension
