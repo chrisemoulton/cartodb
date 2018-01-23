@@ -70,6 +70,10 @@ class Map < Sequel::Model
                 # Flag to detect if being destroyed by whom so invalidate_vizjson_varnish_cache skips it
                 :being_destroyed_by_vis_id
 
+  def after_initialize
+    set_defaults
+  end
+
   def before_save
     super
     self.updated_at = Time.now
@@ -263,5 +267,10 @@ class Map < Sequel::Model
 
   def table_name
     tables.first.nil? ? nil : tables.first.name
+  end
+
+  def set_defaults
+    # Protect against nil boolean flags
+    self.legends = (self.legends || true) if self.legends.nil?
   end
 end
