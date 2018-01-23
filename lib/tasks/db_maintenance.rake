@@ -878,13 +878,12 @@ namespace :cartodb do
     # @example:
     # execute_on_dedicated_users_or_organization_owners_with_index(:populate_new_fields.to_s, Proc.new { |user, i| ... })
     def execute_on_dedicated_users_or_organization_owners_with_index(task_name, block, num_threads=1, sleep_time=0.1, database_host=nil)
-      puts 'actest'
       if database_host.nil?
         puts "NO database host"
-        count = ::User.with_sql("select users.* from users, organizations where users.organization_id=organizations.id and (users.account_type = '[DEDICATED]' OR users.id = organizations.owner_id)").count
+        count = ::User.with_sql("select users.* from users LEFT JOIN organizations ON users.organization_id=organizations.id where (users.account_type = '[DEDICATED]' OR users.id = organizations.owner_id)").count
       else
         puts "database host"
-        count = ::User.with_sql("select users.* from users, organizations where users.organization_id=organizations.id and database_host = ? and (users.account_type = '[DEDICATED]' OR users.id = organizations.owner_id)", database_host).count
+        count = ::User.with_sql("select users.* from users LEFT JOIN organizations ON users.organization_id=organizations.id where database_host = ? and (users.account_type = '[DEDICATED]' OR users.id = organizations.owner_id)", database_host).count
       end
 
       start_message = ">Running #{task_name} for #{count} users"
@@ -899,7 +898,7 @@ namespace :cartodb do
       thread_pool = ThreadPool.new(num_threads, sleep_time)
 
       if database_host.nil?
-        ::User.with_sql("select users.* from users, organizations where users.organization_id=organizations.id and (users.account_type = '[DEDICATED]' OR users.id = organizations.owner_id) order by created_at asc").each_with_index do |user, i|
+        ::User.with_sql("select users.* from users LEFT JOIN organizations ON users.organization_id=organizations.id where (users.account_type = '[DEDICATED]' OR users.id = organizations.owner_id) order by created_at asc").each_with_index do |user, i|
           thread_pool.schedule do
             if i % 100 == 0
               puts "PROGRESS: #{i}/#{count} users queued"
@@ -908,7 +907,7 @@ namespace :cartodb do
           end
         end
       else
-        ::User.with_sql("select users.* from users, organizations where users.organization_id=organizations.id and database_host = ? and (users.account_type = '[DEDICATED]' OR users.id = organizations.owner_id) order asc", database_host).each_with_index do |user, i|
+        ::User.with_sql("select users.* from users LEFT JOIN organizations ON users.organization_id=organizations.id where database_host = ? and (users.account_type = '[DEDICATED]' OR users.id = organizations.owner_id) order asc", database_host).each_with_index do |user, i|
           thread_pool.schedule do
             if i % 100 == 0
               puts "PROGRESS: #{i}/#{count} users queued"
