@@ -251,6 +251,43 @@ namespace :cartodb do
       }, threads, thread_sleep, database_host)
     end
 
+    desc 'Install/upgrade CARTODB SQL functions - only organization owners for Bloomberg merge code release'
+    task :load_functions_for_dedicated_and_org_owners_only, [:database_host, :version, :num_threads, :thread_sleep, :sleep, :statement_timeout] => :environment do |task_name, args|
+      # Send this as string, not as number
+      extension_version = args[:version].blank? ? nil : args[:version]
+      database_host = args[:database_host].blank? ? nil : args[:database_host]
+      threads = args[:num_threads].blank? ? 1 : args[:num_threads].to_i
+      thread_sleep = args[:thread_sleep].blank? ? 0.25 : args[:thread_sleep].to_f
+      sleep = args[:sleep].blank? ? 1 : args[:sleep].to_i
+      statement_timeout = args[:statement_timeout].blank? ? 180000 : args[:statement_timeout]
+
+      puts "Running extension update with following config:"
+      puts "extension_version: #{extension_version.nil? ? 'UNSPECIFIED/LATEST' : extension_version}"
+      puts "database_host: #{database_host.nil? ? 'ALL' : database_host}"
+      puts "threads: #{threads}"
+      puts "thread_sleep: #{thread_sleep}"
+      puts "sleep: #{sleep}"
+      puts "statement_timeout: #{statement_timeout}"
+
+      if database_host.nil?
+        count = ::User.count
+      else
+        count = ::User.where(database_host: database_host).count
+      end
+      execute_on_dedicated_users_or_organization_owners_with_index(task_name, Proc.new { |user, i|
+        begin
+          log(sprintf("Trying on %-#{20}s %-#{20}s (%-#{4}s/%-#{4}s)...", user.username, user.database_name, i+1, count), task_name, database_host)
+          # Only load cartodb extensions once per database, i.e. for dedicated users and org owners
+          user.db_service.load_cartodb_functions(statement_timeout, extension_version)
+          log(sprintf("OK %-#{20}s %-#{20}s (%-#{4}s/%-#{4}s)", user.username, user.database_name, i+1, count), task_name, database_host)
+          sleep(sleep)
+        rescue => e
+          log(sprintf("FAIL %-#{20}s (%-#{4}s/%-#{4}s) #{e.message}", user.username, i+1, count), task_name, database_host)
+          puts "FAIL:#{i} #{e.message}"
+        end
+      }, threads, thread_sleep, database_host)
+    end
+
     desc 'Upgrade cartodb postgresql extension'
     task :upgrade_postgres_extension, [:database_host, :version, :sleep, :statement_timeout] => :environment do |task_name, args|
       raise "Sample usage: rake cartodb:db:upgrade_postgres_extension['127.0.0.1','0.5.2']" if args[:database_host].blank? or args[:version].blank?
@@ -834,6 +871,60 @@ namespace :cartodb do
       puts end_message
       log(end_message, task_name, database_host)
     end
+
+    # Executes a ruby code proc/block on all existing users who are dedicated or organization owners, outputting some info
+    # @param task_name string
+    # @param block Proc
+    # @example:
+    # execute_on_dedicated_users_or_organization_owners_with_index(:populate_new_fields.to_s, Proc.new { |user, i| ... })
+    def execute_on_dedicated_users_or_organization_owners_with_index(task_name, block, num_threads=1, sleep_time=0.1, database_host=nil)
+      if database_host.nil?
+        puts "NO database host"
+        count = ::User.with_sql("select users.* from users LEFT JOIN organizations ON users.organization_id=organizations.id where (users.account_type = '[DEDICATED]' OR users.id = organizations.owner_id)").count
+      else
+        puts "database host"
+        count = ::User.with_sql("select users.* from users LEFT JOIN organizations ON users.organization_id=organizations.id where database_host = ? and (users.account_type = '[DEDICATED]' OR users.id = organizations.owner_id)", database_host).count
+      end
+
+      start_message = ">Running #{task_name} for #{count} users"
+      puts start_message
+      log(start_message, task_name, database_host)
+      if database_host.nil?
+        puts "Detailed log stored at log/rake_db_maintenance_#{task_name}.log"
+      else
+        puts "Detailed log stored at log/rake_db_maintenance_#{task_name}_#{database_host}.log"
+      end
+
+      thread_pool = ThreadPool.new(num_threads, sleep_time)
+
+      if database_host.nil?
+        ::User.with_sql("select users.* from users LEFT JOIN organizations ON users.organization_id=organizations.id where (users.account_type = '[DEDICATED]' OR users.id = organizations.owner_id) order by created_at asc").each_with_index do |user, i|
+          thread_pool.schedule do
+            if i % 100 == 0
+              puts "PROGRESS: #{i}/#{count} users queued"
+            end
+            block.call(user, i)
+          end
+        end
+      else
+        ::User.with_sql("select users.* from users LEFT JOIN organizations ON users.organization_id=organizations.id where database_host = ? and (users.account_type = '[DEDICATED]' OR users.id = organizations.owner_id) order asc", database_host).each_with_index do |user, i|
+          thread_pool.schedule do
+            if i % 100 == 0
+              puts "PROGRESS: #{i}/#{count} users queued"
+            end
+            block.call(user, i)
+          end
+        end
+      end
+
+      at_exit { thread_pool.shutdown }
+
+      puts "PROGRESS: #{count}/#{count} users queued"
+      end_message = "\n>Finished #{task_name}\n"
+      puts end_message
+      log(end_message, task_name, database_host)
+    end
+
 
     def log(entry, task_name, filename_suffix='')
       if filename_suffix.nil? || filename_suffix.empty?
