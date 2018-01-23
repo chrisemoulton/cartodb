@@ -211,6 +211,9 @@ class Carto::Map < ActiveRecord::Base
     options[:legends] = (legends || true) if options[:legends].nil?
     options[:scrollwheel] = (scrollwheel || true) if options[:scrollwheel].nil?
 
+    # Sync legends property with options flag for backward compatibility
+    self.legends = options[:legends]
+
     options
   end
 
