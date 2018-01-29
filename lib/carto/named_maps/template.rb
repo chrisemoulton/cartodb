@@ -151,7 +151,7 @@ module Carto
 
         options[:sql_wrap] = layer_options[:sql_wrap] || layer_options[:query_wrapper]
 
-        attributes, interactivity = attributes_and_interactivity(layer, layer_options)
+        attributes, interactivity = attributes_and_interactivity(layer.infowindow, layer.tooltip)
 
         options[:attributes] = attributes if attributes.present?
         options[:interactivity] = interactivity if interactivity.present?
@@ -163,9 +163,7 @@ module Carto
         "SELECT * FROM (#{sql}) AS wrapped_query WHERE <%= layer#{index} %>=1"
       end
 
-      def attributes_and_interactivity(layer, layer_options)
-        layer_infowindow = layer.infowindow
-        layer_tooltip = layer.tooltip
+      def attributes_and_interactivity(layer_infowindow, layer_tooltip)
         click_fields = layer_infowindow['fields'] if layer_infowindow
         hover_fields = layer_tooltip['fields'] if layer_tooltip
 
@@ -185,8 +183,8 @@ module Carto
           }
         end
 
-        if layer_options[:interactivity]
-          interactivity = interactivity & layer_options[:interactivity].split(',')
+        if interactivity.empty?
+          interactivity << 'cartodb_id'
         end
 
         [attributes, interactivity.uniq.join(',')]
