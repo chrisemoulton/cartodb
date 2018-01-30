@@ -184,7 +184,7 @@ module Carto
         end
 
         if interactivity.empty?
-          interactivity << 'cartodb_id'
+          interactivity = ['cartodb_id']
         end
 
         [attributes, interactivity.uniq.join(',')]
