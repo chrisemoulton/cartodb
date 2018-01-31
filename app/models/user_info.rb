@@ -1,3 +1,3 @@
-class UserInfo < Sequel::Model
+class UserInfo < ActiveRecord::Base
   
 end
