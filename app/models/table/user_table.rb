@@ -314,7 +314,7 @@ class UserTable < Sequel::Model
 
   def external_source_visualization
     edi = data_import.try(:external_data_imports)
-    if( !edi.nil? )
+    if( !edi.nil? && !edi.empty?)
       # It is possible when importing a map
       # that multiple external_data_imports are associated with the data_import
       # This is true of Samples 2.0 Save As
@@ -323,18 +323,20 @@ class UserTable < Sequel::Model
       #
       # For backwards compatibility we should return the first record by default
       # if we cannot find a matching name
-      vis = edi.size
-      is_first = True
-      edi.all do |external_data_import|
+      vis = nil
+      is_first = true
+      edi.each do |external_data_import|
         external_source = CartoDB::Visualization::ExternalSource.where(id: external_data_import.external_source_id).first
         if external_source
           # Only process the record if it pertains to the table
           visualization = external_source.visualization
-          if visualization && (visualization.name == self.name || is_first)
-            vis = visualization
+          if visualization
+            if visualization.name == self.name || is_first
+              vis = visualization
+            end
           end
         end
-        is_first = False
+        is_first = false
       end
       vis
     end
