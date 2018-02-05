@@ -37,9 +37,11 @@ module CartoDB
         if external_source
           # Only process the record if it pertains to the table
           visualization = external_source.visualization
-          if visualization && visualization.name == table.name
-            table.description = visualization.description
-            table.set_tag_array(visualization.tags)
+          if visualization
+            if visualization.name == table.name
+              table.description = visualization.description
+              table.set_tag_array(visualization.tags)
+            end
           end
         end
       end
