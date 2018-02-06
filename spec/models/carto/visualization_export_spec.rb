@@ -70,6 +70,32 @@ describe Carto::VisualizationExport do
     end
   end
 
+  class FakeCartoHttpClientGpkgFileToucher < FakeCartoHttpClientFileToucher
+      def get_file(_, exported_file, _)
+        @touched_files << exported_file
+        touch(exported_file)
+      end
+
+      def touch(path)
+        # Create a gpkg file with the metadata table and data table.
+        # The data table doesn't need the correct columns for purpose of test
+        slash_pos = path.rindex('/')
+        ext_pos = path.rindex('.')
+        if slash_pos && ext_pos
+          table_name = path[slash_pos +1..ext_pos-1]
+        else
+          table_name = path
+        end
+        db = SQLite3::Database.new(path)
+        db.execute <<-SQL
+          CREATE TABLE gpkg_metadata (id INTEGER CONSTRAINT m_pk PRIMARY KEY ASC NOT NULL UNIQUE,md_scope TEXT NOT NULL DEFAULT 'dataset',md_standard_uri TEXT NOT NULL,mime_type TEXT NOT NULL DEFAULT 'text/xml',metadata TEXT NOT NULL);
+        SQL
+        db.execute <<-SQL
+          CREATE TABLE #{table_name} (id INTEGER CONSTRAINT m_pk PRIMARY KEY ASC NOT NULL UNIQUE);
+        SQL
+      end
+  end
+
   let(:base_dir) { ensure_clean_folder('/tmp/exporter_test') }
 
   describe '#export' do
@@ -102,6 +128,82 @@ describe Carto::VisualizationExport do
         names.count { |f| f =~ /\.carto\.json$/ }.should eq 1
         names.should include(touched_files[0].split('/').last)
         names.should include(touched_files[1].split('/').last)
+      end
+
+      ([exported_file] + touched_files).map { |f| File.delete(f) if File.exists?(f) }
+
+      destroy_full_visualization(map, table, table_visualization, visualization)
+    end
+
+    it 'exports a .carto file including the carto.json and the carto.gpkg file for commond shared dataset' do
+      map = FactoryGirl.create(:carto_map, user: @carto_user1)
+      # Create the common_data_user from the config
+      # TODO - Will this affect other unit tests?
+      common_data_user = FactoryGirl.create(:carto_user, { username: Cartodb.config[:common_data]['username'] } )
+
+      table1 = FactoryGirl.create(:private_user_table, user: @carto_user1)
+      table2 = FactoryGirl.create(:private_user_table, user: @carto_user1)
+      # Create a common dataset
+      table3 = FactoryGirl.create(:private_user_table, user: @carto_user1)
+      table3_visualization = create_table_visualization(common_data_user, table3)
+
+      # Needs to create the synchronization record since that is how we identify common datasets
+      data_import = FactoryGirl.create(:remote_synchronization, user_id: common_data_user.id, name: table3.name, visualization_id: table3_visualization.id)
+
+      layer1 = FactoryGirl.create(:carto_layer, options: { table_name: table1.name }, maps: [map])
+      FactoryGirl.create(:carto_layer, options: { table_name: table2.name }, maps: [map])
+      FactoryGirl.create(:carto_layer, options: { table_name: table3.name }, maps: [map])
+
+      map, table, table_visualization, visualization = create_full_visualization(@carto_user1,
+                                                                                 map: map,
+                                                                                 table: table1,
+                                                                                 data_layer: layer1)
+
+      # Need to create valid gpkg files
+      fake_carto_http_client_toucher = FakeCartoHttpClientGpkgFileToucher.new
+
+      exported_file = Carto::VisualizationExport.new.export(
+        visualization,
+        @carto_user1,
+        base_dir: base_dir,
+        data_exporter: Carto::DataExporter.new(fake_carto_http_client_toucher))
+
+      touched_files = fake_carto_http_client_toucher.touched_files
+      # Need to modify the filename of table3 to expected filename
+      for i in (0...touched_files.length)
+        if touched_files[i] =~ /#{table3.name}/
+          touched_files[i].sub! '.gpkg', '.carto.gpkg'
+        end
+      end
+
+      CartoDB::Importer2::Unp.new.open(exported_file) do |files|
+        files.length.should eq (map.layers.count + 1)
+        names = files.map(&:path)
+        names.count { |f| f =~ /\.carto\.json$/ }.should eq 1
+        names.count { |f| f =~ /\.carto\.gpkg$/ }.should eq 1
+        names.should include(touched_files[0].split('/').last)
+        names.should include(touched_files[1].split('/').last)
+        names.should include(touched_files[2].split('/').last)
+
+        # Validate the metadata of the carto.gpkg file
+        for f in files.map(&:fullpath)
+          if f =~/\.carto\.gpkg$/
+            Carto::GpkgCartoMetadataUtil.open(geopkg_file: f) do |md|
+              expected_md = {
+                                   vendor: 'carto',
+                                   data: {
+                                       source: {
+                                             type: 'fdw',
+                                               configuration: {
+                                                   parent_table: "#{table3.name}"
+                                                   }
+                                               }
+                                       }
+                                   }.with_indifferent_access
+              md.metadata.should eq expected_md
+            end
+          end
+        end
       end
 
       ([exported_file] + touched_files).map { |f| File.delete(f) if File.exists?(f) }
