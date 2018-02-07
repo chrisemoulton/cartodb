@@ -314,7 +314,7 @@ class UserTable < Sequel::Model
 
   def external_source_visualization
     edi = data_import.try(:external_data_imports)
-    if( !edi.nil? && edi.length > 1 )
+    if !edi.nil? && edi.length > 1
       # It is possible when importing a map
       # that multiple external_data_imports are associated with the data_import
       # This is true of Samples 2.0 Save As
