@@ -18,6 +18,13 @@ FactoryGirl.define do
     privacy 'public'
   end
 
+  factory :remote_visualization, class: CartoDB::Visualization::Member do
+    to_create(&:store)
+    type 'remote'
+    name "visualization_#{random_uuid}"
+    privacy 'public'
+  end
+
   factory :carto_visualization, class: Carto::Visualization do
     id { random_uuid }
     type 'derived'

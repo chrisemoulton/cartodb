@@ -77,7 +77,9 @@ module CartoDB
           name = result.name
         # HACK - Samples 2.0 Save As - The actual runner of some tables are hidden because they arecreated under the scenes
         #  Longer term a new runner should be created and additional info needs to be passed up
-        elsif result.schema != ORIGIN_SCHEMA && File.extname(@runner.downloader.source_file.filename) == '.carto'
+        elsif result.schema != ORIGIN_SCHEMA &&
+            ((@runner.downloader.source_file.filename && File.extname(@runner.downloader.source_file.filename) == '.carto') ||
+             File.extname(@runner.downloader.source_file.path) == '.carto')
           name = result.name
         else
           # Sanitizing table name if it corresponds with a PostgreSQL reseved word
@@ -348,7 +350,10 @@ module CartoDB
 
       def persist_metadata(result, name, data_import_id)
         # HACK - Samples 2.0 Save As
-        if result.schema != ORIGIN_SCHEMA && !runner.instance_of?(CartoDB::Importer2::CDBDataLibraryConnector) && File.extname(@runner.downloader.source_file.filename) == '.carto'
+        if result.schema != ORIGIN_SCHEMA &&
+           !runner.instance_of?(CartoDB::Importer2::CDBDataLibraryConnector) &&
+           ((@runner.downloader.source_file.filename && File.extname(@runner.downloader.source_file.filename) == '.carto') ||
+            File.extname(@runner.downloader.source_file.path) == '.carto')
           # Check if need to do remote load_common_datatable already exists
           remote_vis = Carto::Visualization.where(type: 'remote', name: name, user_id: table_registrar.user.id).first
           unless remote_vis
@@ -382,7 +387,8 @@ module CartoDB
           # Create the external data import
           # This needs to always happen to make sure visualization flags are copied
           external_source_id = CartoDB::Visualization::ExternalSource.where(visualization_id: remote_vis.id).first.id
-          ExternalDataImport.new(data_import.id, external_source_id, data_import.synchronization_id).save
+          # Do not link the synchronization id or the dataset will appear twice in autocomplete
+          ExternalDataImport.new(data_import.id, external_source_id, nil).save
 
           # Check if table already exists
           unless Carto::UserTable.where(user_id: table_registrar.user.id, name: name).exists?
