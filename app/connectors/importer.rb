@@ -78,8 +78,7 @@ module CartoDB
         # HACK - Samples 2.0 Save As - The actual runner of some tables are hidden because they arecreated under the scenes
         #  Longer term a new runner should be created and additional info needs to be passed up
         elsif result.schema != ORIGIN_SCHEMA &&
-            ((@runner.downloader.source_file.filename && File.extname(@runner.downloader.source_file.filename) == '.carto') ||
-             File.extname(@runner.downloader.source_file.path) == '.carto')
+              source_extension(@runner.downloader.source_file) == '.carto'
           name = result.name
         else
           # Sanitizing table name if it corresponds with a PostgreSQL reseved word
@@ -348,12 +347,15 @@ module CartoDB
         runner.log.append("Silently failed rename_the_geom_index_if_exists from #{current_name} to #{new_name} with exception #{exception}. Backtrace: #{exception.backtrace.to_s}. ")
       end
 
+      def source_extension(source_file)
+        source_file.filename ? File.extname(source_file.filename) : File.extname(source_file.path)
+      end
+
       def persist_metadata(result, name, data_import_id)
         # HACK - Samples 2.0 Save As
         if result.schema != ORIGIN_SCHEMA &&
            !runner.instance_of?(CartoDB::Importer2::CDBDataLibraryConnector) &&
-           ((@runner.downloader.source_file.filename && File.extname(@runner.downloader.source_file.filename) == '.carto') ||
-            File.extname(@runner.downloader.source_file.path) == '.carto')
+           source_extension(@runner.downloader.source_file) == '.carto'
           # Check if need to do remote load_common_datatable already exists
           remote_vis = Carto::Visualization.where(type: 'remote', name: name, user_id: table_registrar.user.id).first
           unless remote_vis
