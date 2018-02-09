@@ -8,10 +8,7 @@ describe CartoDB::Connector::Importer do
 
   before(:all) do
     @user = create_user(quota_in_bytes: 1000.megabyte, table_quota: 400, max_layers: 4)
-    @common_data_user = Carto::User.where(username: Cartodb.config[:common_data]['username']).first
-    unless @common_data_user
-      @common_data_user = FactoryGirl.create(:carto_user, { username: Cartodb.config[:common_data]['username'] } )
-    end
+    @common_data_user = FactoryGirl.create(:carto_user, { username: Cartodb.config[:common_data]['username'] } )
   end
 
   before(:each) do
