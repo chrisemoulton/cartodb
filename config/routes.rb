@@ -464,6 +464,9 @@ CartoDB::Application.routes.draw do
 
     # ImageProxy
     get '(/user/:user_domain)(/u/:user_domain)/api/v1/image_proxy' => 'image_proxy#show'
+
+    # Samples Link - Bloomberg specific
+    get '(/user/:user_domain)(/u/:user_domain)/api/v1/sample_link/:id' => 'samples#show', as: :api_v1_samples_link_show
   end
 
   scope :module => 'api/json', :format => :json do
