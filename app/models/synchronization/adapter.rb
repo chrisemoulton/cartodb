@@ -56,16 +56,19 @@ module CartoDB
         return false unless runner.remote_data_updated?
         temporary_name = temporary_name_for(result.table_name)
 
-        # The relation might (and probably will) already exist in the user public schema
-        # as source table is a synchronization and those keep same ID along their life
-        # (and the geom index uses table id as base for its name),
-        # so first we need to remove old table, then change schema of the imported one
-        # and finally rename newly moved table to original name
-        database.transaction do
-          rename(table_name, temporary_name) if exists?(table_name)
-          drop(temporary_name) if exists?(temporary_name)
-          rename(result.table_name, table_name)
-        end
+        # Transactionally replace the contents of the destination
+        # table `table_name`, with the imported contents, i.e.
+        # `result.table_name`.  This may be optimized as a DROP
+        # and RENAME if the table can be dropped, otherwise a
+        # truncate-insert is performed.
+        database.execute(%Q{
+          SELECT cartodb.CDB_TableUtils_ReplaceTableContents(
+            '#{user.database_schema}',
+            '#{table_name}',
+            '#{result.table_name}',
+            '#{temporary_name}'
+          );
+        })
         fix_oid(table_name)
         update_cdb_tablemetadata(table_name)
       rescue => exception
