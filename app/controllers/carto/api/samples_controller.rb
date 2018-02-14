@@ -11,6 +11,12 @@ module Carto
       rescue_from Carto::UUIDParameterFormatError, with: :rescue_from_carto_error
 
       def show
+        # Validate if valid uuid
+        unless is_uuid?(@id)
+          redirect_to CartoDB.url(self, 'maps_samples', {}, current_user)
+          return
+        end
+
         # Lookup visualization
         viz = Carto::Visualization.where(id: @id).first
         if viz && viz.user_id == sample_maps_user.id
