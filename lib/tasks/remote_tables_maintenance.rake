@@ -317,10 +317,10 @@ namespace :cartodb do
       valid_viz_props = ['description', 'source', 'category', 'exportable', 'export_geom']
       valid_table_props = ['name_alias', 'column_aliases']
       viz_prop_list = args[:props] ?
-                          args[:props].split(';').reject { |prop| !valid_viz_props.include? prop } :
+                          args[:props].split(';').select { |prop| valid_viz_props.include? prop } :
                           valid_viz_props
       table_prop_list = args[:props] ?
-                          args[:props].split(';').reject { |prop| !valid_table_props.include? prop } :
+                          args[:props].split(';').select { |prop| valid_table_props.include? prop } :
                           valid_table_props
       common_data_username = Cartodb.config[:common_data]["username"]
       lib_datasets = {}
@@ -393,7 +393,7 @@ namespace :cartodb do
           end
         end
       else
-        puts "Error! Invalid arguments. Valid properties are: #{valid_props.join(', ')}"
+        puts "Error! Invalid arguments. Valid properties are: #{(valid_viz_props + valid_table_props).join(', ')}"
       end
     end
 
