@@ -1,5 +1,6 @@
 # encoding: utf-8
 require_relative '../spec_helper'
+require_relative '../spec_helper'
 require_relative '../../app/connectors/importer'
 require_relative '../doubles/result'
 require 'csv'
@@ -8,6 +9,7 @@ describe CartoDB::Connector::Importer do
 
   before(:all) do
     @user = create_user(quota_in_bytes: 1000.megabyte, table_quota: 400, max_layers: 4)
+    @common_data_user = FactoryGirl.create(:carto_user, { username: Cartodb.config[:common_data]['username'] } )
   end
 
   before(:each) do
@@ -17,6 +19,9 @@ describe CartoDB::Connector::Importer do
   after(:each) do
     if @data_import
       @data_import.table.destroy if @data_import.table.id.present?
+      @data_import.external_data_imports.each do |edi|
+        edi.destroy
+      end
       @data_import.destroy
     end
     @visualization.destroy if @visualization
@@ -628,6 +633,281 @@ describe CartoDB::Connector::Importer do
       layer.user_tables.count.should eq 1
       user_table = layer.user_tables.first
       user_table.name.should eq 'twitter_t3chfest_reduced'
+
+      canonical_layer = user_table.visualization.data_layers.first
+      canonical_layer.user_tables.count.should eq 1
+    end
+
+    it 'registers table dependencies for .carto.gpkg import on initial load' do
+      filepath = "#{Rails.root}/services/importer/spec/fixtures/fdw_us_states.carto"
+
+      # To follow the typical Sample 2.0 Save As process a synchronization record is typically created first.
+      #   If this isn't set the synchronization_id should still be nil (Same behavior)
+      synchronization = FactoryGirl.create(:remote_synchronization, user_id: @user.id)
+
+      @data_import = DataImport.create(
+        user_id: @user.id,
+        data_source: filepath,
+        updated_at: Time.now.utc,
+        append: false,
+        create_visualization: true,
+        synchronization_id: synchronization.id
+      )
+      @data_import.values[:data_source] = filepath
+
+      # Create the remote visualization of the shared dataset
+      shared_remote_vis = FactoryGirl.create(:table_visualization, user_id: @common_data_user.id)
+      expect(shared_remote_vis).not_to be_nil
+
+      # Will need to stub the common data return from visualization api
+      begin
+        CommonDataSingleton.instance.stubs(:datasets).returns (
+          [{
+            id: shared_remote_vis.id,
+            name: 'us_states',
+            description: 'This is my test description',
+            tags: [],
+            exportable: false,
+            export_geom: false,
+            size: 16384,
+            rows: 50,
+            url: 'test url'
+          }.with_indifferent_access])
+
+        @data_import.run_import!
+      ensure
+        CommonDataSingleton.instance.unstub(:datasets)
+      end
+
+      @data_import.success.should eq true
+
+      # Make sure the external data import was created
+      #  If this was not created then the visualization properties such as
+      #  exportable will not be set properly
+      edi = ExternalDataImport.where(data_import_id: @data_import.id)
+      expect(edi.any?).to be_true
+      expect(edi.first).not_to be_nil
+      expect(edi.first.synchronization_id).to be_nil
+
+      # Check the table visualizations were created (with proper export permissions and descriptions)
+
+      # Check the remote remote visualization was created
+      remote_vis = Carto::Visualization.where(type: 'remote', name: 'us_states', user_id: @user.id).first
+      expect(remote_vis).not_to be_nil
+      expect(remote_vis.exportable).to be_false
+      expect(remote_vis.export_geom).to be_false
+      expect(remote_vis.description).to eq('This is my test description')
+
+      # Check the table remote visualization was created
+      table_vis = Carto::Visualization.where(type: 'table', name: 'us_states', user_id: @user.id).first
+      expect(table_vis).not_to be_nil
+      expect(table_vis.exportable).to be_false
+      expect(table_vis.export_geom).to be_false
+      expect(table_vis.description).to eq('This is my test description')
+
+      # Check the user table was created
+      @data_import.table_name.should eq 'us_states'
+
+      # Check the map visualization
+      @visualization = Carto::Visualization.find(@data_import.visualization_id)
+
+      layer = @visualization.data_layers.first
+      layer.user_tables.count.should eq 1
+      user_table = layer.user_tables.first
+      user_table.name.should eq 'us_states'
+
+      canonical_layer = user_table.visualization.data_layers.first
+      canonical_layer.user_tables.count.should eq 1
+    end
+
+    it 'registers table dependencies for .carto.gpkg import on second load' do
+      filepath = "#{Rails.root}/services/importer/spec/fixtures/fdw_us_states.carto"
+
+      # To follow the typical Sample 2.0 Save As process a synchronization record is typically created first.
+      #   If this isn't set the synchronization_id should still be nil (Same behavior)
+      synchronization = FactoryGirl.create(:remote_synchronization, user_id: @user.id)
+
+      @data_import = DataImport.create(
+        user_id: @user.id,
+        data_source: filepath,
+        updated_at: Time.now.utc,
+        append: false,
+        create_visualization: true,
+        synchronization_id: synchronization.id
+      )
+      @data_import.values[:data_source] = filepath
+
+      # Create the remote visualization of the shared dataset and for current user
+      # (ie: user already connected to dataset)
+      shared_remote_vis = FactoryGirl.create(:table_visualization, user_id: @common_data_user.id, description: 'This is my test description', exportable: false, export_geom: false)
+      expect(shared_remote_vis).not_to be_nil
+      user_remote_vis = FactoryGirl.create(:remote_visualization, name: 'us_states', user_id: @user.id, description: 'This is my test description', exportable: false, export_geom: false)
+      expect(user_remote_vis).not_to be_nil
+      user_external_source = FactoryGirl.create(:external_source_with_existing_visualization, visualization_id: user_remote_vis.id)
+      expect(user_external_source).not_to be_nil
+      expect(user_external_source.visualization_id).to eq user_remote_vis.id
+
+      # TODO - Will need to verify load_common_data is not called
+      #expect(CommonDataSingleton.instance).to_not receive(:datasets)
+
+      @data_import.run_import!
+      @data_import.success.should eq true
+
+      # Make sure the external data import was created
+      #  If this was not created then the visualization properties such as
+      #  exportable will not be set properly
+      edi = ExternalDataImport.where(data_import_id: @data_import.id)
+      expect(edi.any?).to be_true
+      expect(edi.first).not_to be_nil
+      expect(edi.first.synchronization_id).to be_nil
+
+      # Check the table visualizations were created (with proper export permissions and descriptions)
+
+      # Check the remote remote visualization was created
+      remote_vis = Carto::Visualization.where(type: 'remote', name: 'us_states', user_id: @user.id).first
+      expect(remote_vis).not_to be_nil
+      expect(remote_vis.exportable).to be_false
+      expect(remote_vis.export_geom).to be_false
+      expect(remote_vis.description).to eq('This is my test description')
+
+      # Check the table remote visualization was created
+      table_vis = Carto::Visualization.where(type: 'table', name: 'us_states', user_id: @user.id).first
+      expect(table_vis).not_to be_nil
+      expect(table_vis.exportable).to be_false
+      expect(table_vis.export_geom).to be_false
+      expect(table_vis.description).to eq('This is my test description')
+
+      # Check the user table was created
+      @data_import.table_name.should eq 'us_states'
+
+      # Check the map visualization
+      @visualization = Carto::Visualization.find(@data_import.visualization_id)
+
+      layer = @visualization.data_layers.first
+      layer.user_tables.count.should eq 1
+      user_table = layer.user_tables.first
+      user_table.name.should eq 'us_states'
+
+      canonical_layer = user_table.visualization.data_layers.first
+      canonical_layer.user_tables.count.should eq 1
+    end
+
+    it 'registers correct dataset description and list endpoint output (autocomplete) for multiple .carto.gpkg import' do
+      filepath = "#{Rails.root}/services/importer/spec/fixtures/fdw_multiple_layers.carto"
+
+      # To follow the typical Sample 2.0 Save As process a synchronization record is typically created first.
+      #   If this isn't set the synchronization_id should still be nil (Same behavior)
+      synchronization = FactoryGirl.create(:remote_synchronization, user_id: @user.id)
+
+      @data_import = DataImport.create(
+        user_id: @user.id,
+        data_source: filepath,
+        updated_at: Time.now.utc,
+        append: false,
+        create_visualization: true,
+        synchronization_id: synchronization.id
+      )
+      @data_import.values[:data_source] = filepath
+
+      # Create the remote visualization of the shared dataset
+      shared_remote_vis = FactoryGirl.create(:table_visualization, user_id: @common_data_user.id)
+      expect(shared_remote_vis).not_to be_nil
+      shared_remote_vis2 = FactoryGirl.create(:table_visualization, user_id: @common_data_user.id)
+      expect(shared_remote_vis2).not_to be_nil
+
+      # Will need to stub the common data return from visualization api
+      begin
+        CommonDataSingleton.instance.stubs(:datasets).returns (
+          [{
+            id: shared_remote_vis.id,
+            name: 'major_airports',
+            description: 'The airports',
+            tags: [],
+            exportable: false,
+            export_geom: false,
+            size: 16384,
+            rows: 50,
+            url: 'test url'
+          }.with_indifferent_access,
+          {
+            id: shared_remote_vis2.id,
+            name: 'us_states_ehh',
+            description: 'My dataset description',
+            tags: [],
+            exportable: true,
+            export_geom: true,
+            size: 16384,
+            rows: 50,
+            url: 'test url'
+          }.with_indifferent_access
+         ])
+
+        @data_import.run_import!
+      ensure
+        CommonDataSingleton.instance.unstub(:datasets)
+      end
+
+      @data_import.success.should eq true
+
+      # Make sure the external data import was created
+      #  If this was not created then the visualization properties such as
+      #  exportable will not be set properly
+      edi = ExternalDataImport.where(data_import_id: @data_import.id)
+      expect(edi.any?).to be_true
+      expect(edi.count).to eq 2 # One import per layer
+      edi.each do |rec|
+        # synchroinization id must be null to make sure list end point doesn't return duplicates
+        expect(rec.synchronization_id).to be_nil
+      end
+
+      # Check the table visualizations were created (with proper export permissions and descriptions)
+
+      # Check the remote remote visualization was created
+      remote_vis = Carto::Visualization.where(type: 'remote', name: 'major_airports', user_id: @user.id).first
+      expect(remote_vis).not_to be_nil
+      expect(remote_vis.exportable).to be_false
+      expect(remote_vis.export_geom).to be_false
+      expect(remote_vis.description).to eq('The airports')
+
+      # Check the table remote visualization was created
+      table_vis = Carto::Visualization.where(type: 'table', name: 'major_airports', user_id: @user.id).first
+      expect(table_vis).not_to be_nil
+      expect(table_vis.exportable).to be_false
+      expect(table_vis.export_geom).to be_false
+      expect(table_vis.description).to eq('The airports')
+
+      # Check the remote remote visualization was created
+      remote_vis = Carto::Visualization.where(type: 'remote', name: 'us_states_ehh', user_id: @user.id).first
+      expect(remote_vis).not_to be_nil
+      expect(remote_vis.exportable).to be_true
+      expect(remote_vis.export_geom).to be_true
+      expect(remote_vis.description).to eq('My dataset description')
+
+      # Check the table remote visualization was created
+      table_vis = Carto::Visualization.where(type: 'table', name: 'us_states_ehh', user_id: @user.id).first
+      expect(table_vis).not_to be_nil
+      expect(table_vis.exportable).to be_true
+      expect(table_vis.export_geom).to be_true
+      expect(table_vis.description).to eq('My dataset description')
+
+      # Check the user table was created - This always returns the first table
+      @data_import.table_name.should eq 'major_airports'
+
+      # Check the map visualization
+      @visualization = Carto::Visualization.find(@data_import.visualization_id)
+
+      layer = @visualization.data_layers.first
+      layer.user_tables.count.should eq 1
+      user_table = layer.user_tables.first
+      user_table.name.should eq 'us_states_ehh'
+
+      canonical_layer = user_table.visualization.data_layers.first
+      canonical_layer.user_tables.count.should eq 1
+
+      layer = @visualization.data_layers.last
+      layer.user_tables.count.should eq 1
+      user_table = layer.user_tables.first
+      user_table.name.should eq 'major_airports'
 
       canonical_layer = user_table.visualization.data_layers.first
       canonical_layer.user_tables.count.should eq 1
