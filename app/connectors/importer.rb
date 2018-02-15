@@ -392,7 +392,8 @@ module CartoDB
           # Create the external data import
           # This needs to always happen to make sure visualization flags are copied
           external_source_id = CartoDB::Visualization::ExternalSource.where(visualization_id: remote_vis.id).first.id
-          ExternalDataImport.new(data_import.id, external_source_id, data_import.synchronization_id).save
+          # Do not link the synchronization id or the dataset will appear twice in autocomplete
+          ExternalDataImport.new(data_import.id, external_source_id, nil).save
 
           # Check if table already exists
           unless Carto::UserTable.where(user_id: table_registrar.user.id, name: name).exists?
