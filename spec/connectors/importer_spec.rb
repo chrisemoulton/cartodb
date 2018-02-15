@@ -899,7 +899,7 @@ describe CartoDB::Connector::Importer do
       layer = @visualization.data_layers.first
       layer.user_tables.count.should eq 1
       user_table = layer.user_tables.first
-      user_table.name.should eq 'major_airports'
+      user_table.name.should eq 'us_states_ehh'
 
       canonical_layer = user_table.visualization.data_layers.first
       canonical_layer.user_tables.count.should eq 1
@@ -907,7 +907,7 @@ describe CartoDB::Connector::Importer do
       layer = @visualization.data_layers.last
       layer.user_tables.count.should eq 1
       user_table = layer.user_tables.first
-      user_table.name.should eq 'us_states_ehh'
+      user_table.name.should eq 'major_airports'
 
       canonical_layer = user_table.visualization.data_layers.first
       canonical_layer.user_tables.count.should eq 1
