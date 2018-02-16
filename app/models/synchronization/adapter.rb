@@ -60,14 +60,16 @@ module CartoDB
         # table `table_name`, with the imported contents, i.e.
         # `result.table_name`.  This may be optimized as a DROP
         # and RENAME if the table can be dropped, otherwise a
-        # truncate-insert is performed.
+        # TRUNCATE/INSERT is performed.
         database.execute(%Q{
-          SELECT cartodb.CDB_TableUtils_ReplaceTableContents(
-            '#{user.database_schema}',
-            '#{table_name}',
-            '#{result.table_name}',
-            '#{temporary_name}'
-          );
+          BEGIN TRANSACTION;
+            SELECT cartodb.CDB_TableUtils_ReplaceTableContents(
+              '#{user.database_schema}',
+              '#{table_name}',
+              '#{result.table_name}',
+              '#{temporary_name}'
+            );
+          COMMIT;
         })
         fix_oid(table_name)
         update_cdb_tablemetadata(table_name)
