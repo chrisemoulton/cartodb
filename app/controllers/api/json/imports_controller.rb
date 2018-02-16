@@ -195,6 +195,8 @@ class Api::Json::ImportsController < Api::ApplicationController
       append:                 (params[:append].presence == 'true'),
       table_copy:             params[:table_copy].presence,
       from_query:             params[:sql].presence,
+      relation_type:          DataImport::ALLOWED_RELATION_TYPES.include?(params[:relation_type]) ?
+                                  params[:relation_type] : DataImport::RELATION_TYPE_TABLE,
       service_name:           params[:service_name].present? ? params[:service_name] : CartoDB::Datasources::Url::PublicUrl::DATASOURCE_NAME,
       service_item_id:        params[:service_item_id].present? ? params[:service_item_id] : params[:url].presence,
       type_guessing:          !["false", false].include?(params[:type_guessing]),

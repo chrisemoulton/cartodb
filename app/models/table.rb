@@ -1176,10 +1176,16 @@ class Table
     schema_name = owner.database_schema
     table_name = "#{owner.database_schema}.#{self.name}"
 
+    cartodbfy_proc = case (@data_import && @data_import.relation_type)
+      when ::DataImport::RELATION_TYPE_TABLE then 'CDB_CartodbfyTable'
+      when ::DataImport::RELATION_TYPE_VIEW  then 'CDB_CartodbfyView'
+      else 'CDB_CartodbfyTable'
+    end
+
     importer_stats.timing('cartodbfy') do
       owner.transaction_with_timeout(statement_timeout: STATEMENT_TIMEOUT) do |user_conn|
         user_conn.run(%Q{
-          SELECT cartodb.CDB_CartodbfyTable('#{schema_name}'::TEXT,'#{table_name}'::REGCLASS);
+          SELECT cartodb.#{cartodbfy_proc}('#{schema_name}'::TEXT,'#{table_name}'::REGCLASS);
         })
       end
     end
