@@ -847,8 +847,13 @@ class DataImport < Sequel::Model
       end
 
       # Table.after_create() setted fields that won't be saved to "final" data import unless specified here
-      self.table_name = importer.table.name if importer.success? && importer.table
-      self.table_id   = importer.table.id if importer.success? && importer.table
+      # Hack for Samples 2.0 Save As - Tech debt to clean up with more elegant solution
+      #  If we are import a .carto file do not attach a name to the synchronziation record
+      synchronization = CartoDB::Synchronization::Member.new(id: synchronization_id).fetch if synchronization_id
+      unless synchronization && synchronization.url && File.extname(synchronization.url) == '.carto'
+        self.table_name = importer.table.name if importer.success? && importer.table
+        self.table_id   = importer.table.id if importer.success? && importer.table
+      end
 
       if importer.success?
         update_visualization_id(importer)
@@ -877,7 +882,7 @@ class DataImport < Sequel::Model
       log.store
       log.append "synchronization_id: #{synchronization_id}"
       synchronization = CartoDB::Synchronization::Member.new(id: synchronization_id).fetch
-      synchronization.name    = self.table_name
+      synchronization.name = table_name
       synchronization.log_id  = log.id
 
       if importer.success?

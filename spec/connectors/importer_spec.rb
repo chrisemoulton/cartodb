@@ -949,5 +949,55 @@ describe CartoDB::Connector::Importer do
       canonical_layer = user_table.visualization.data_layers.first
       canonical_layer.user_tables.count.should eq 1
     end
+
+    it 'registers local data correctly from .carto.gpkg import' do
+      filepath = "#{Rails.root}/services/importer/spec/fixtures/local_layer.carto"
+
+      # To follow the typical Sample 2.0 Save As process a synchronization record is typically created first.
+      #   If this isn't set the synchronization_id should still be nil (Same behavior)
+      #   The url needs to be set since it's used to determine if a carto is being synced
+      synchronization = FactoryGirl.create(:remote_synchronization, user_id: @user.id, url: filepath, service_name: nil)
+
+      @data_import = DataImport.create(
+        user_id: @user.id,
+        data_source: filepath,
+        updated_at: Time.now.utc,
+        append: false,
+        create_visualization: true,
+        synchronization_id: synchronization.id
+      )
+      @data_import.values[:data_source] = filepath
+
+      @data_import.run_import!
+      @data_import.success.should eq true
+      expect(synchronization.state).to eq 'success'
+      expect(synchronization.name).to be_nil
+
+      # Verify a synchronization record does NOT exists per dataset
+      sync = Carto::Synchronization.where(user_id: @user.id, name: 'local_data')
+      expect(sync.any?).to be_false
+
+      # Check the table visualizations were created (with proper export permissions and descriptions)
+
+      # Check the table visualization was created
+      table_vis = Carto::Visualization.where(type: 'table', name: 'local_data', user_id: @user.id).first
+      expect(table_vis).not_to be_nil
+      expect(table_vis.exportable).to be_true
+      expect(table_vis.export_geom).to be_true
+
+      # Verify the data import for the .carto file is not tied to a table
+      expect(@data_import.table_name).to be_nil
+
+      # Check the map visualization
+      @visualization = Carto::Visualization.find(@data_import.visualization_id)
+
+      layer = @visualization.data_layers.first
+      layer.user_tables.count.should eq 1
+      user_table = layer.user_tables.first
+      user_table.name.should eq 'local_data'
+
+      canonical_layer = user_table.visualization.data_layers.first
+      canonical_layer.user_tables.count.should eq 1
+    end
   end
 end
