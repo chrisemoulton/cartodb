@@ -848,7 +848,10 @@ class DataImport < Sequel::Model
 
       # Table.after_create() setted fields that won't be saved to "final" data import unless specified here
       # Hack for Samples 2.0 Save As - Tech debt to clean up with more elegant solution
-      #  If we are import a .carto file do not attach a name to the synchronziation record
+      #  If we are import a .carto file do not attach a name to the synchronziation record.
+      #  This is to insure the sync is not linked to the table_visualization.  If it is this
+      #  will lead to potentially multiple problems such as duplicates in autocomplete
+      #  and the edit UI appearing for non-editable datasets
       synchronization = CartoDB::Synchronization::Member.new(id: synchronization_id).fetch if synchronization_id
       unless synchronization && synchronization.url && File.extname(synchronization.url) == '.carto'
         self.table_name = importer.table.name if importer.success? && importer.table
