@@ -683,6 +683,7 @@ describe CartoDB::Connector::Importer do
       @data_import.success.should eq true
       expect(synchronization.state).to eq 'success'
       expect(synchronization.name).to be_nil
+      expect(synchronization.visualization_id).to be_nil
 
       # Verify a synchronization record exists per dataset
       sync = Carto::Synchronization.where(user_id: @user.id, name: 'us_states', service_name: 'connector')
@@ -714,6 +715,7 @@ describe CartoDB::Connector::Importer do
 
       # Verify the data import for the .carto file is not tied to a table
       expect(@data_import.table_name).to be_nil
+      expect(@data_import.table_id).to be_nil
 
       # Check the map visualization
       @visualization = Carto::Visualization.find(@data_import.visualization_id)
@@ -771,6 +773,7 @@ describe CartoDB::Connector::Importer do
       @data_import.success.should eq true
       expect(synchronization.state).to eq 'success'
       expect(synchronization.name).to be_nil
+      expect(synchronization.visualization_id).to be_nil
 
       # Verify a synchronization record exists per dataset
       sync = Carto::Synchronization.where(user_id: @user.id, name: 'us_states', service_name: 'connector')
@@ -801,6 +804,7 @@ describe CartoDB::Connector::Importer do
 
       # Verify the data import for the .carto file is not tied to a table
       expect(@data_import.table_name).to be_nil
+      expect(@data_import.table_id).to be_nil
 
       # Check the map visualization
       @visualization = Carto::Visualization.find(@data_import.visualization_id)
@@ -929,6 +933,7 @@ describe CartoDB::Connector::Importer do
 
       # Verify the data import for the .carto file is not tied to a table
       expect(@data_import.table_name).to be_nil
+      expect(@data_import.table_id).to be_nil
 
       # Check the map visualization
       @visualization = Carto::Visualization.find(@data_import.visualization_id)
@@ -972,6 +977,7 @@ describe CartoDB::Connector::Importer do
       @data_import.success.should eq true
       expect(synchronization.state).to eq 'success'
       expect(synchronization.name).to be_nil
+      expect(synchronization.visualization_id).to be_nil
 
       # Verify a synchronization record does NOT exists per dataset
       sync = Carto::Synchronization.where(user_id: @user.id, name: 'local_data')
@@ -987,6 +993,7 @@ describe CartoDB::Connector::Importer do
 
       # Verify the data import for the .carto file is not tied to a table
       expect(@data_import.table_name).to be_nil
+      expect(@data_import.table_id).to be_nil
 
       # Check the map visualization
       @visualization = Carto::Visualization.find(@data_import.visualization_id)
