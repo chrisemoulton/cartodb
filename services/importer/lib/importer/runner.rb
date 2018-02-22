@@ -242,6 +242,71 @@ module CartoDB
         loader.run(@post_import_handler)
       end
 
+      def create_remote_visualization_if_necessary(table_name)
+        # Check if need to do remote load_common_datatable already exists
+        remote_vis = Carto::Visualization.where(type: 'remote', name: table_name, user_id: @user.id).first
+        unless remote_vis
+          # Hacky way to build url.  Resque does not have access to rails helper routines.
+          # The alternative is to do this check in rails, but it'll require inspecting the .carto.gpkg
+          #  in editor and then again in the resque
+          common_data_config = Cartodb.config[:common_data]
+          common_data_base_url = common_data_config['base_url'] if !common_data_config.nil?
+
+          if common_data_base_url.nil?
+            raise CartoDB::Importer2::GenericImportError.new("Common data base_url not configured for visualizations")
+          end
+
+          params = {type: 'table', privacy: 'public'}
+          if table_name.nil?
+            raise CartoDB::Importer2::GenericImportError.new("Dataset not provided for remote visualization")
+          end
+          params[:name] = table_name if !table_name.nil?
+
+          # We set user_domain to nil to avoid duplication in the url for subdomainfull urls. Ie. user.carto.com/u/cartodb/...
+          params[:user_domain] = nil
+          visualizations_api_url = common_data_base_url + "/api/v1/viz?#{params.to_query}"
+          @user.load_common_data(visualizations_api_url)
+
+          remote_vis = Carto::Visualization.where(type: 'remote', name: table_name, user_id: @user.id).first
+          unless remote_vis
+            raise CartoDB::Importer2::GenericImportError.new("Failed to create remote visualization")
+          end
+        end
+      end
+
+      def connect_shared_dataset(table_name)
+        if Carto::Synchronization.where(:name => table_name, :user_id => @user.id, :service_name => 'connector').size <= 0
+          # Import the dataset as if the user connected directly to it....
+          member_attributes = {
+            name:                   table_name,
+            user_id:                @user.id,
+            state:                  Synchronization::Member::STATE_QUEUED, # Go straight to queued state since we auto-kick it off
+            service_name:           'connector',
+            service_item_id:        "driver=postgres;channel=postgres_fdw;table=#{table_name}"
+          }
+          member = Synchronization::Member.new(member_attributes)
+          member.store
+          options = {
+            user_id:                @user.id,
+            table_name:             table_name,
+            service_name:           member_attributes[:service_name],
+            service_item_id:        member_attributes[:service_item_id],
+            synchronization_id:     member.id
+          }
+          data_import = DataImport.create(options)
+
+          # Create the external data import
+          # This needs to always happen to make sure visualization flags are copied
+          remote_vis = Carto::Visualization.where(type: 'remote', name: table_name, user_id: @user.id).first
+          external_source_id = CartoDB::Visualization::ExternalSource.where(visualization_id: remote_vis.id).first.id
+          ExternalDataImport.new(data_import.id, external_source_id, member.id).save
+
+          DataImport[data_import.id].run_import!
+        else
+          job.log "Table #{table_name} already synchronized.  Skipping...."
+        end
+      end
+
       def single_resource_import
         @importer_stats.timing('resource') do
           @importer_stats.timing('download') do
@@ -290,23 +355,11 @@ module CartoDB
                    md.metadata['data']['source']['type'] == 'fdw')
 
                   job.log "FDW gpkg detected.  Setting up foreign tables"
+                  table_name = md.metadata['data']['source']['configuration']['parent_table']
 
-                  # Create the correct runner and execute....
-                  temp_connector = CartoDB::Importer2::CDBDataLibraryConnector.new(
-                    "driver=postgres;channel=postgres_fdw;table=#{md.metadata['data']['source']['configuration']['parent_table']}",
-                    user: @user,
-                    pg: @pg_options,
-                    log: @log
-                  )
-                  temp_connector.run(&@tracker)
-                  @results.concat( temp_connector.results )
+                  create_remote_visualization_if_necessary(table_name)
 
-                  # For continuity let's add stats
-                  import_stats = {}
-                  import_stats[:filename] = source_file.path
-                  import_stats[:type] = source_file.extension
-                  import_stats[:size] = source_file.size
-                  @stats << import_stats
+                  connect_shared_dataset(table_name)
                 else
                   # assume if the file is .carto.gpkg then it must have the
                   # metadata we are looking for.

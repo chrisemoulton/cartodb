@@ -661,8 +661,8 @@ describe CartoDB::Connector::Importer do
 
       # Will need to stub the common data return from visualization api
       begin
-        CommonDataSingleton.instance.stubs(:datasets).returns (
-          [{
+        CommonDataSingleton.instance.stubs(:datasets).returns [
+          {
             id: shared_remote_vis.id,
             name: 'us_states',
             description: 'This is my test description',
@@ -672,7 +672,8 @@ describe CartoDB::Connector::Importer do
             size: 16384,
             rows: 50,
             url: 'test url'
-          }.with_indifferent_access])
+          }.with_indifferent_access
+        ]
 
         @data_import.run_import!
       ensure
@@ -680,14 +681,21 @@ describe CartoDB::Connector::Importer do
       end
 
       @data_import.success.should eq true
+      expect(synchronization.state).to eq 'success'
+      expect(synchronization.name).to be_nil
+      expect(synchronization.visualization_id).to be_nil
 
+      # Verify a synchronization record exists per dataset
+      sync = Carto::Synchronization.where(user_id: @user.id, name: 'us_states', service_name: 'connector')
+      expect(sync.any?).to be_true
+      expect(sync.first.state).to eq('success')
+      expect(sync.first.service_item_id).to eq('driver=postgres;channel=postgres_fdw;table=us_states')
       # Make sure the external data import was created
       #  If this was not created then the visualization properties such as
       #  exportable will not be set properly
-      edi = ExternalDataImport.where(data_import_id: @data_import.id)
+      edi = ExternalDataImport.where(synchronization_id: sync.first.id)
       expect(edi.any?).to be_true
       expect(edi.first).not_to be_nil
-      expect(edi.first.synchronization_id).to be_nil
 
       # Check the table visualizations were created (with proper export permissions and descriptions)
 
@@ -705,8 +713,9 @@ describe CartoDB::Connector::Importer do
       expect(table_vis.export_geom).to be_false
       expect(table_vis.description).to eq('This is my test description')
 
-      # Check the user table was created
-      @data_import.table_name.should eq 'us_states'
+      # Verify the data import for the .carto file is not tied to a table
+      expect(@data_import.table_name).to be_nil
+      expect(@data_import.table_id).to be_nil
 
       # Check the map visualization
       @visualization = Carto::Visualization.find(@data_import.visualization_id)
@@ -720,7 +729,7 @@ describe CartoDB::Connector::Importer do
       canonical_layer.user_tables.count.should eq 1
     end
 
-    it 'registers table dependencies for .carto.gpkg import on second load' do
+    it 'registers table dependencies for .carto.gpkg import on already imported dataset' do
       filepath = "#{Rails.root}/services/importer/spec/fixtures/fdw_us_states.carto"
 
       # To follow the typical Sample 2.0 Save As process a synchronization record is typically created first.
@@ -739,27 +748,43 @@ describe CartoDB::Connector::Importer do
 
       # Create the remote visualization of the shared dataset and for current user
       # (ie: user already connected to dataset)
-      shared_remote_vis = FactoryGirl.create(:table_visualization, user_id: @common_data_user.id, description: 'This is my test description', exportable: false, export_geom: false)
+      shared_remote_vis = FactoryGirl.create(:table_visualization,
+                                             user_id: @common_data_user.id,
+                                             description: 'This is my test description',
+                                             exportable: false,
+                                             export_geom: false)
       expect(shared_remote_vis).not_to be_nil
-      user_remote_vis = FactoryGirl.create(:remote_visualization, name: 'us_states', user_id: @user.id, description: 'This is my test description', exportable: false, export_geom: false)
+      user_remote_vis = FactoryGirl.create(:remote_visualization,
+                                           name: 'us_states',
+                                           user_id: @user.id,
+                                           description: 'This is my test description',
+                                           exportable: false,
+                                           export_geom: false)
       expect(user_remote_vis).not_to be_nil
-      user_external_source = FactoryGirl.create(:external_source_with_existing_visualization, visualization_id: user_remote_vis.id)
+      user_external_source = FactoryGirl.create(:external_source_with_existing_visualization,
+                                                visualization_id: user_remote_vis.id)
       expect(user_external_source).not_to be_nil
       expect(user_external_source.visualization_id).to eq user_remote_vis.id
 
       # TODO - Will need to verify load_common_data is not called
-      #expect(CommonDataSingleton.instance).to_not receive(:datasets)
+      # expect(CommonDataSingleton.instance).to_not receive(:datasets)
 
       @data_import.run_import!
       @data_import.success.should eq true
+      expect(synchronization.state).to eq 'success'
+      expect(synchronization.name).to be_nil
+      expect(synchronization.visualization_id).to be_nil
 
+      # Verify a synchronization record exists per dataset
+      sync = Carto::Synchronization.where(user_id: @user.id, name: 'us_states', service_name: 'connector')
+      expect(sync.any?).to be_true
+      expect(sync.first.state).to eq('success')
       # Make sure the external data import was created
       #  If this was not created then the visualization properties such as
       #  exportable will not be set properly
-      edi = ExternalDataImport.where(data_import_id: @data_import.id)
+      edi = ExternalDataImport.where(synchronization_id: sync.first.id)
       expect(edi.any?).to be_true
       expect(edi.first).not_to be_nil
-      expect(edi.first.synchronization_id).to be_nil
 
       # Check the table visualizations were created (with proper export permissions and descriptions)
 
@@ -777,8 +802,9 @@ describe CartoDB::Connector::Importer do
       expect(table_vis.export_geom).to be_false
       expect(table_vis.description).to eq('This is my test description')
 
-      # Check the user table was created
-      @data_import.table_name.should eq 'us_states'
+      # Verify the data import for the .carto file is not tied to a table
+      expect(@data_import.table_name).to be_nil
+      expect(@data_import.table_id).to be_nil
 
       # Check the map visualization
       @visualization = Carto::Visualization.find(@data_import.visualization_id)
@@ -817,8 +843,8 @@ describe CartoDB::Connector::Importer do
 
       # Will need to stub the common data return from visualization api
       begin
-        CommonDataSingleton.instance.stubs(:datasets).returns (
-          [{
+        CommonDataSingleton.instance.stubs(:datasets).returns [
+          {
             id: shared_remote_vis.id,
             name: 'major_airports',
             description: 'The airports',
@@ -840,7 +866,7 @@ describe CartoDB::Connector::Importer do
             rows: 50,
             url: 'test url'
           }.with_indifferent_access
-         ])
+        ]
 
         @data_import.run_import!
       ensure
@@ -848,17 +874,32 @@ describe CartoDB::Connector::Importer do
       end
 
       @data_import.success.should eq true
+      expect(synchronization.state).to eq 'success'
+      expect(synchronization.name).to be_nil
 
+      # Verify a synchronization record exists per dataset
+      sync = Carto::Synchronization.where(user_id: @user.id, name: 'us_states_ehh', service_name: 'connector')
+      expect(sync.any?).to be_true
+      expect(sync.first.state).to eq('success')
+      expect(sync.first.service_item_id).to eq('driver=postgres;channel=postgres_fdw;table=us_states_ehh')
       # Make sure the external data import was created
       #  If this was not created then the visualization properties such as
       #  exportable will not be set properly
-      edi = ExternalDataImport.where(data_import_id: @data_import.id)
+      edi = ExternalDataImport.where(synchronization_id: sync.first.id)
       expect(edi.any?).to be_true
-      expect(edi.count).to eq 2 # One import per layer
-      edi.each do |rec|
-        # synchroinization id must be null to make sure list end point doesn't return duplicates
-        expect(rec.synchronization_id).to be_nil
-      end
+      expect(edi.first).not_to be_nil
+
+      # Verify a synchronization record exists per dataset
+      sync = Carto::Synchronization.where(user_id: @user.id, name: 'major_airports', service_name: 'connector')
+      expect(sync.any?).to be_true
+      expect(sync.first.state).to eq('success')
+      expect(sync.first.service_item_id).to eq('driver=postgres;channel=postgres_fdw;table=major_airports')
+      # Make sure the external data import was created
+      #  If this was not created then the visualization properties such as
+      #  exportable will not be set properly
+      edi = ExternalDataImport.where(synchronization_id: sync.first.id)
+      expect(edi.any?).to be_true
+      expect(edi.first).not_to be_nil
 
       # Check the table visualizations were created (with proper export permissions and descriptions)
 
@@ -890,8 +931,9 @@ describe CartoDB::Connector::Importer do
       expect(table_vis.export_geom).to be_true
       expect(table_vis.description).to eq('My dataset description')
 
-      # Check the user table was created - This always returns the first table
-      @data_import.table_name.should eq 'major_airports'
+      # Verify the data import for the .carto file is not tied to a table
+      expect(@data_import.table_name).to be_nil
+      expect(@data_import.table_id).to be_nil
 
       # Check the map visualization
       @visualization = Carto::Visualization.find(@data_import.visualization_id)
@@ -908,6 +950,58 @@ describe CartoDB::Connector::Importer do
       layer.user_tables.count.should eq 1
       user_table = layer.user_tables.first
       user_table.name.should eq 'major_airports'
+
+      canonical_layer = user_table.visualization.data_layers.first
+      canonical_layer.user_tables.count.should eq 1
+    end
+
+    it 'registers local data correctly from .carto.gpkg import' do
+      filepath = "#{Rails.root}/services/importer/spec/fixtures/local_layer.carto"
+
+      # To follow the typical Sample 2.0 Save As process a synchronization record is typically created first.
+      #   If this isn't set the synchronization_id should still be nil (Same behavior)
+      #   The url needs to be set since it's used to determine if a carto is being synced
+      synchronization = FactoryGirl.create(:remote_synchronization, user_id: @user.id, url: filepath, service_name: nil)
+
+      @data_import = DataImport.create(
+        user_id: @user.id,
+        data_source: filepath,
+        updated_at: Time.now.utc,
+        append: false,
+        create_visualization: true,
+        synchronization_id: synchronization.id
+      )
+      @data_import.values[:data_source] = filepath
+
+      @data_import.run_import!
+      @data_import.success.should eq true
+      expect(synchronization.state).to eq 'success'
+      expect(synchronization.name).to be_nil
+      expect(synchronization.visualization_id).to be_nil
+
+      # Verify a synchronization record does NOT exists per dataset
+      sync = Carto::Synchronization.where(user_id: @user.id, name: 'local_data')
+      expect(sync.any?).to be_false
+
+      # Check the table visualizations were created (with proper export permissions and descriptions)
+
+      # Check the table visualization was created
+      table_vis = Carto::Visualization.where(type: 'table', name: 'local_data', user_id: @user.id).first
+      expect(table_vis).not_to be_nil
+      expect(table_vis.exportable).to be_true
+      expect(table_vis.export_geom).to be_true
+
+      # Verify the data import for the .carto file is not tied to a table
+      expect(@data_import.table_name).to be_nil
+      expect(@data_import.table_id).to be_nil
+
+      # Check the map visualization
+      @visualization = Carto::Visualization.find(@data_import.visualization_id)
+
+      layer = @visualization.data_layers.first
+      layer.user_tables.count.should eq 1
+      user_table = layer.user_tables.first
+      user_table.name.should eq 'local_data'
 
       canonical_layer = user_table.visualization.data_layers.first
       canonical_layer.user_tables.count.should eq 1
