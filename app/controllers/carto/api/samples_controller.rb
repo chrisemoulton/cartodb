@@ -1,6 +1,9 @@
+require_dependency 'carto/uuidhelper'
+
 module Carto
   module Api
     class SamplesController < ::Api::ApplicationController
+      include Carto::UUIDHelper
 
       ssl_required :show
 
