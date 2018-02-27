@@ -21,7 +21,7 @@ class SignupController < ApplicationController
   before_filter :initialize_google_plus_config,
                 :initialize_github_config
 
-  def signup
+  def signup  
     email = params[:email].present? ? params[:email] : nil
     @user = ::User.new(email: email)
   end
@@ -54,7 +54,7 @@ class SignupController < ApplicationController
       account_creator.with_password(params[:user][:password]) if params[:user][:password].present?
     end
 
-    if account_creator.valid?
+    if account_creator.valid?  
       trigger_account_creation(account_creator)
       render 'shared/signup_confirmation'
     else
@@ -168,7 +168,14 @@ class SignupController < ApplicationController
     #subdomain = CartoDB.subdomainless_urls? ? request.host.to_s.gsub(".#{CartoDB.session_domain}", '') : CartoDB.subdomain_from_request(request)
     #@organization = ::Organization.where(name: subdomain).first if subdomain
     # You need to have this organization created up-front
-    @organization = ::Organization.where(name: 'blp-global').first
+    blp_org = ::Organization.where(name: 'blp-global').first
+    if (blp_org)
+      @organization = blp_org
+    else
+      subdomain = CartoDB.subdomainless_urls? ? request.host.to_s.gsub(".#{CartoDB.session_domain}", '') : CartoDB.subdomain_from_request(request)
+      @organization = ::Organization.where(name: subdomain).first if subdomain
+    end
+        
   end
 
   def check_organization_quotas
