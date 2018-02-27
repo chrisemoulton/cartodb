@@ -79,7 +79,8 @@ class ApplicationController < ActionController::Base
         if authenticator.creation_in_progress?(request)
           redirect_to CartoDB.path(self, 'signup_http_authentication_in_progress')
         else
-          redirect_to CartoDB.path(self, 'signup_http_authentication')
+          # Pass a redirect url to goto after user creation is successful
+          redirect_to CartoDB.path(self, 'signup_http_authentication', redirect_to: request.path)
         end
       end
     end
