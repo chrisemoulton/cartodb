@@ -176,11 +176,11 @@ describe Carto::Api::OverlaysController do
     end
 
     it 'fails to create two overlays of the same unique type' do
-      header_overlay = Carto::Overlay.new(type: 'header', visualization_id: params[:visualization_id])
+      header_overlay = Carto::Overlay.new(type: 'search', visualization_id: params[:visualization_id])
       header_overlay.save
 
       payload = {
-        type: 'header'
+        type: 'search'
       }
 
       post_json overlays_url(params), payload do |response|
@@ -188,7 +188,24 @@ describe Carto::Api::OverlaysController do
         response.body[:errors].should be
       end
 
-      Carto::Overlay.where(visualization_id: params[:visualization_id], type: 'header').count.should eq 1
+      Carto::Overlay.where(visualization_id: params[:visualization_id], type: 'search').count.should eq 1
+    end
+
+    it 'can create create two overlays of the type header' do
+      header_overlay = Carto::Overlay.new(type: 'header', visualization_id: params[:visualization_id])
+      header_overlay.save
+
+      payload = {
+        type: 'header',
+        order: 2
+      }
+
+      post_json overlays_url(params), payload do |response|
+        response.status.should eq 200
+        response.body[:errors].should be nil
+      end
+
+      Carto::Overlay.where(visualization_id: params[:visualization_id], type: 'header').count.should eq 2
     end
 
     it 'returns 401 when creating overlays in other users viz' do
@@ -239,14 +256,14 @@ describe Carto::Api::OverlaysController do
     end
 
     it 'fails to update two overlays of the same unique type' do
-      header_overlay = Carto::Overlay.new(type: 'header', visualization_id: params[:visualization_id])
+      header_overlay = Carto::Overlay.new(type: 'search', visualization_id: params[:visualization_id])
       header_overlay.save
 
       overlay = Carto::Overlay.new(type: 'text', visualization_id: params[:visualization_id])
       overlay.save
 
       payload = {
-        type: 'header'
+        type: 'search'
       }
 
       put_json overlay_url(params.merge(id: overlay.id)), payload do |response|
