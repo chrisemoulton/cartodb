@@ -9,7 +9,10 @@ describe CartoDB::Connector::Importer do
 
   before(:all) do
     @user = create_user(quota_in_bytes: 1000.megabyte, table_quota: 400, max_layers: 4)
-    @common_data_user = FactoryGirl.create(:carto_user, { username: Cartodb.config[:common_data]['username'] } )
+    @common_data_user = FactoryGirl.create(:carto_user, username: Cartodb.config[:common_data]['username'])
+    # Need to override because this will change on every run
+    @common_data_user.reload
+    Cartodb::config[:fdw]['database'] = @common_data_user.database_name
   end
 
   before(:each) do
@@ -30,6 +33,7 @@ describe CartoDB::Connector::Importer do
 
   after(:all) do
     bypass_named_maps
+    @common_data_user.destroy
     @user.destroy
   end
 
@@ -655,6 +659,10 @@ describe CartoDB::Connector::Importer do
       )
       @data_import.values[:data_source] = filepath
 
+      # Create the actual remote table
+      @existing_table = create_table(user_id: @common_data_user.id, schema: '15775613', name: 'us_states')
+      expect(@existing_table).not_to be_nil
+
       # Create the remote visualization of the shared dataset
       shared_remote_vis = FactoryGirl.create(:table_visualization, user_id: @common_data_user.id)
       expect(shared_remote_vis).not_to be_nil
@@ -746,6 +754,10 @@ describe CartoDB::Connector::Importer do
       )
       @data_import.values[:data_source] = filepath
 
+      # Create the actual remote table
+      @existing_table = create_table(user_id: @common_data_user.id, schema: '15775613', name: 'us_states')
+      expect(@existing_table).not_to be_nil
+
       # Create the remote visualization of the shared dataset and for current user
       # (ie: user already connected to dataset)
       shared_remote_vis = FactoryGirl.create(:table_visualization,
@@ -835,6 +847,12 @@ describe CartoDB::Connector::Importer do
       )
       @data_import.values[:data_source] = filepath
 
+      # Create the actual remote table
+      @existing_table = create_table(user_id: @common_data_user.id, schema: '15775613', name: 'us_states_ehh')
+      expect(@existing_table).not_to be_nil
+      shared_table2 = create_table(user_id: @common_data_user.id, schema: '15775613', name: 'major_airports')
+      expect(shared_table2).not_to be_nil
+
       # Create the remote visualization of the shared dataset
       shared_remote_vis = FactoryGirl.create(:table_visualization, user_id: @common_data_user.id)
       expect(shared_remote_vis).not_to be_nil
@@ -871,6 +889,7 @@ describe CartoDB::Connector::Importer do
         @data_import.run_import!
       ensure
         CommonDataSingleton.instance.unstub(:datasets)
+        shared_table2.destroy
       end
 
       @data_import.success.should eq true
