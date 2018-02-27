@@ -325,6 +325,7 @@ SPEC_HELPER_MIN_SPECS = \
 	spec/models/carto/username_proposer_spec.rb \
 	spec/services/carto/overquota_users_service_spec.rb \
 	spec/lib/carto/geopkg_carto_metadata_util_spec.rb \
+	spec/requests/carto/api/samples_controller_spec.rb \
 	$(NULL)
 
 # This class must be tested isolated as pollutes namespace
