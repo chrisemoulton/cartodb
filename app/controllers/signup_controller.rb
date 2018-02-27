@@ -98,9 +98,12 @@ class SignupController < ApplicationController
 
     logger.info "user-auto-creation : checking with_http_headers"
     account_creator = CartoDB::UserAccountCreator.
-      new(Carto::UserCreation::CREATED_VIA_HTTP_AUTENTICATION).
-#      with_email_only(authenticator.email(request))
-      with_http_headers(request.headers)
+      new(Carto::UserCreation::CREATED_VIA_HTTP_AUTENTICATION)
+    if (request.headers['persistent-id'])
+      account_creator.with_http_headers(request.headers)
+    else
+      account_creator.with_email_only(authenticator.email(request))
+    end
 
     account_creator = account_creator.with_organization(@organization) if @organization
 
