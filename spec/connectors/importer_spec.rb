@@ -10,6 +10,10 @@ describe CartoDB::Connector::Importer do
   before(:all) do
     @user = create_user(quota_in_bytes: 1000.megabyte, table_quota: 400, max_layers: 4)
     @common_data_user = FactoryGirl.create(:carto_user, username: Cartodb.config[:common_data]['username'])
+    @organization = FactoryGirl.create(:organization)
+    @uo = CartoDB::UserOrganization.new(@organization.id, @common_data_user.id)
+    @uo.promote_user_to_admin
+    @organization.reload
     # Need to override because this will change on every run
     @common_data_user.reload
     Cartodb::config[:fdw]['database'] = @common_data_user.database_name
@@ -33,6 +37,8 @@ describe CartoDB::Connector::Importer do
 
   after(:all) do
     bypass_named_maps
+    @uo.destroy
+    @organization.destroy
     @common_data_user.destroy
     @user.destroy
   end
