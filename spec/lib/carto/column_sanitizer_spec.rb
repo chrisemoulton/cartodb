@@ -58,7 +58,7 @@ describe Carto::ColumnSanitizer do
   end
 
   def sanitize(table_name, table_schema, column_names)
-    CartoDB::ColumnSanitizer.new(@db_conn).sanitize(
+    Carto::ColumnSanitizer.new(@db_conn).sanitize(
       table_name,
       table_schema,
       column_names
