@@ -7,7 +7,13 @@ module CartoDB
       @db_connection = db_connection
     end
 
-    def sanitize(table_name, column_names)
+    # Sanitize columns by renaming them according to the value
+    # of `String#sanitize_column_name`. If `column_names` is `nil`,
+    # all columns are sanitized. No modifications to the column are
+    # made if the column is already `sanitary`.
+    def sanitize(table_name, table_schema, column_names = nil)
+      column_names ||= get_column_names(table_name, table_schema)
+
       columns_to_sanitize = column_names.select do |column_name|
         column_name != column_name.sanitize_column_name
       end
@@ -31,10 +37,21 @@ module CartoDB
         end
       }
 
-      sanitization_map.each do |unsanitized, sanitized|
-        @db_connection.alter_table table_name do
+      @db_connection.alter_table table_name do
+        sanitization_map.each do |unsanitized, sanitized|
           rename_column unsanitized, sanitized
         end
+      end
+    end
+
+    private
+
+    # Get all columns for a table
+    def get_column_names(table_name, table_schema)
+      @db_connection.schema(table_name, {schema: table_schema}).map do |col|
+        # Column definitions are an array, the first element of
+        # which is the column name as a Symbol
+        col.first.to_s
       end
     end
 

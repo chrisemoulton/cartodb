@@ -116,7 +116,11 @@ module CartoDB
     end
 
     def sanitize(column_names)
-      CartoDB::ColumnSanitizer.new(@db_connection).sanitize(@current_name, column_names)
+      CartoDB::ColumnSanitizer.new(@db_connection).sanitize(
+        current_name,
+        @target_schema,
+        column_names
+      )
     end
   end
 end

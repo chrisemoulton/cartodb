@@ -1057,9 +1057,14 @@ describe CartoDB::Connector::Importer do
     end
 
     it "should sanitize unsanitary columns" do
-      table_name = 'completely_unsanitary'
-      column_names = ['i have spaces', 'I_HAVE_CAPS', 'i-has**symbols**!!']
-      rows = [[123, 'abc', 'bar'], [456, 'def', 'baz']]
+      table_name = 'somewhat_unsanitary'
+      column_names = [
+        'i have spaces',
+        'I_HAVE_CAPS',
+        'i-has**symbols**!!',
+        'i_am_sanitary'
+      ]
+      rows = [[123, 'abc', 'bar', 'clean'], [456, 'def', 'baz', 'sanitary']]
       import_table(@user, table_name, column_names, rows)
 
       sanitized_column_names = column_names.map { |c| c.sanitize_column_name }.sort
@@ -1069,7 +1074,7 @@ describe CartoDB::Connector::Importer do
     end
 
     it "should ignore columns not in column_names" do
-      table_name = 'completely_unsanitary'
+      table_name = 'partially_unsanitary'
       unsanitary_column_names = [
         'i have spaces',
         'I_HAVE_CAPS',
@@ -1093,7 +1098,7 @@ describe CartoDB::Connector::Importer do
     end
 
     it "should not fail when columns are sanitary" do
-      table_name = 'completely_unsanitary'
+      table_name = 'perfectly_sanitary'
       column_names = [
         'i_am_sanitary',
         'me_too'
