@@ -21,7 +21,7 @@ class SignupController < ApplicationController
   before_filter :initialize_google_plus_config,
                 :initialize_github_config
 
-  def signup  
+  def signup
     email = params[:email].present? ? params[:email] : nil
     @user = ::User.new(email: email)
   end
@@ -54,7 +54,7 @@ class SignupController < ApplicationController
       account_creator.with_password(params[:user][:password]) if params[:user][:password].present?
     end
 
-    if account_creator.valid?  
+    if account_creator.valid?
       trigger_account_creation(account_creator)
       render 'shared/signup_confirmation'
     else
