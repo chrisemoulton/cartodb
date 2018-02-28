@@ -1042,10 +1042,6 @@ describe CartoDB::Connector::Importer do
       @user.destroy
     end
 
-    def sanitize(table_name, column_names)
-      CartoDB::ColumnSanitizer.new(@db_conn).sanitize(table_name, column_names)
-    end
-
     def get_data_column_names(table_name)
       all_cols = @db_conn.schema(
         table_name, {schema: @user.database_schema}

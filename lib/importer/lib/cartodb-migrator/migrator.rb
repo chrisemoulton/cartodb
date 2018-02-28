@@ -1,5 +1,5 @@
 # coding: UTF-8
-require_relative 'column_sanitizer'
+require_relative '../../../../lib/carto/column_sanitizer'
 
 module CartoDB
   class Migrator
@@ -116,7 +116,7 @@ module CartoDB
     end
 
     def sanitize(column_names)
-      CartoDB::ColumnSanitizer.new(@db_connection).sanitize(
+      Carto::ColumnSanitizer.new(@db_connection).sanitize(
         current_name,
         @target_schema,
         column_names

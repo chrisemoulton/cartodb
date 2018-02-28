@@ -1,6 +1,6 @@
 # coding: UTF-8
 
-module CartoDB
+module Carto
   class ColumnSanitizer
 
     def initialize(db_connection)

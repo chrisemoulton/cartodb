@@ -1,8 +1,8 @@
 # coding: UTF-8
 require 'spec_helper'
-require_relative '../../../../../lib/importer/lib/cartodb-migrator/column_sanitizer'
+require_relative '../../../lib/carto/column_sanitizer'
 
-describe CartoDB::ColumnSanitizer do
+describe Carto::ColumnSanitizer do
   before(:each) do
     @user = create_user :email => 'blah@example.com', :username => 'blah', :password => '3456123'
     @table_name = 'test_table'
