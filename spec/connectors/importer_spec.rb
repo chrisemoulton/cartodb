@@ -666,7 +666,9 @@ describe CartoDB::Connector::Importer do
       @data_import.values[:data_source] = filepath
 
       # Create the actual remote table
-      @existing_table = create_table(user_id: @common_data_user.id, schema: '15775613', name: 'us_states')
+      @existing_table = create_table(user_id: @common_data_user.id,
+                                     schema: Cartodb.config[:common_data]['remote_schema'],
+                                     name: 'us_states')
       expect(@existing_table).not_to be_nil
 
       # Create the remote visualization of the shared dataset
@@ -761,7 +763,9 @@ describe CartoDB::Connector::Importer do
       @data_import.values[:data_source] = filepath
 
       # Create the actual remote table
-      @existing_table = create_table(user_id: @common_data_user.id, schema: '15775613', name: 'us_states')
+      @existing_table = create_table(user_id: @common_data_user.id,
+                                     schema: Cartodb.config[:common_data]['remote_schema'],
+                                     name: 'us_states')
       expect(@existing_table).not_to be_nil
 
       # Create the remote visualization of the shared dataset and for current user
@@ -854,9 +858,13 @@ describe CartoDB::Connector::Importer do
       @data_import.values[:data_source] = filepath
 
       # Create the actual remote table
-      @existing_table = create_table(user_id: @common_data_user.id, schema: '15775613', name: 'us_states_ehh')
+      @existing_table = create_table(user_id: @common_data_user.id,
+                                     schema: Cartodb.config[:common_data]['remote_schema'],
+                                     name: 'us_states_ehh')
       expect(@existing_table).not_to be_nil
-      shared_table2 = create_table(user_id: @common_data_user.id, schema: '15775613', name: 'major_airports')
+      shared_table2 = create_table(user_id: @common_data_user.id,
+                                   schema: Cartodb.config[:common_data]['remote_schema'],
+                                   name: 'major_airports')
       expect(shared_table2).not_to be_nil
 
       # Create the remote visualization of the shared dataset
