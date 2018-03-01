@@ -89,6 +89,7 @@ WORKING_SPECS_1 = \
 	spec/lib/carto/http/client_spec.rb \
 	spec/lib/carto/bolt_spec.rb \
 	spec/lib/carto/table_utils_spec.rb \
+	spec/lib/carto/column_sanitizer_spec.rb \
 	spec/helpers/uuidhelper_spec.rb \
 	spec/helpers/url_validator_spec.rb \
 	spec/models/carto/data_import_spec.rb \

@@ -43,6 +43,29 @@ describe CartoDB::Connector::Importer do
     @user.destroy
   end
 
+  def import_table(user, table_name, column_names, rows)
+    filepath = "/tmp/#{table_name}.csv"
+    CSV.open(filepath, 'w') do |csv|
+      header = column_names.map { |c| "\"#{c}\"" }
+      csv << header
+      rows.each do |r|
+        csv << r
+      end
+    end
+
+    data_import = DataImport.create(
+      :user_id       => user.id,
+      :data_source   => filepath,
+      :updated_at    => Time.now,
+      :append        => false
+    )
+    data_import.values[:data_source] = filepath
+
+    data_import.run_import!
+  ensure
+    File.delete(filepath) if File.exist?(filepath)
+  end
+
   let(:skip) { DataImport::COLLISION_STRATEGY_SKIP }
 
   it 'should not fail to return a new_name when ALTERing the INDEX fails' do
@@ -1039,5 +1062,86 @@ describe CartoDB::Connector::Importer do
       canonical_layer = user_table.visualization.data_layers.first
       canonical_layer.user_tables.count.should eq 1
     end
+  end
+
+  describe "column sanitization" do
+
+    before(:each) do
+      @user = create_user :email => 'blah@example.com', :username => 'blah', :password => '3456123'
+      @db_conn = @user.in_database
+    end
+
+    after(:each) do
+      @user.destroy
+    end
+
+    def get_data_column_names(table_name)
+      all_cols = @db_conn.schema(
+        table_name, {schema: @user.database_schema}
+      ).map(&:first)
+
+      (all_cols - [:the_geom, :the_geom_webmercator, :cartodb_id])
+        .map(&:to_s)
+        .sort
+    end
+
+    it "should sanitize unsanitary columns" do
+      table_name = 'somewhat_unsanitary'
+      column_names = [
+        'i have spaces',
+        'I_HAVE_CAPS',
+        'i-has**symbols**!!',
+        'i_am_sanitary'
+      ]
+      rows = [[123, 'abc', 'bar', 'clean'], [456, 'def', 'baz', 'sanitary']]
+      import_table(@user, table_name, column_names, rows)
+
+      sanitized_column_names = column_names.map { |c| c.sanitize_column_name }.sort
+      actual_column_names = get_data_column_names(table_name)
+      actual_column_names.should_not be_nil
+      actual_column_names.should eq sanitized_column_names
+    end
+
+    it "should ignore columns not in column_names" do
+      table_name = 'partially_unsanitary'
+      unsanitary_column_names = [
+        'i have spaces',
+        'I_HAVE_CAPS',
+        'i-has**symbols**!!',
+      ]
+      sanitary_column_names = [
+        'i_am_sanitary',
+        'me_too'
+      ]
+      column_names = unsanitary_column_names + sanitary_column_names
+      rows = [[123, 'abc', 'bar', 'a', 1], [456, 'def', 'baz', 'b', 2]]
+      import_table(@user, table_name, column_names, rows)
+
+      sanitized_column_names = column_names.map(&:sanitize_column_name).sort
+      actual_column_names = get_data_column_names(table_name)
+
+      unsanitary_column_names.each { |c| c.sanitize_column_name.should_not eq c }
+      sanitary_column_names.each { |c| c.sanitize_column_name.should eq c }
+      actual_column_names.should_not be_nil
+      actual_column_names.should eq sanitized_column_names
+    end
+
+    it "should not fail when columns are sanitary" do
+      table_name = 'perfectly_sanitary'
+      column_names = [
+        'i_am_sanitary',
+        'me_too'
+      ]
+      rows = [['a', 1], ['b', 2]]
+      import_table(@user, table_name, column_names, rows)
+
+      sanitized_column_names = column_names.map(&:sanitize_column_name).sort
+      actual_column_names = get_data_column_names(table_name)
+
+      sanitized_column_names.should eq column_names.sort
+      actual_column_names.should_not be_nil
+      actual_column_names.should eq sanitized_column_names
+    end
+
   end
 end

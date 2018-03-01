@@ -1,4 +1,5 @@
 # encoding: utf-8
+require_relative '../../../lib/carto/column_sanitizer'
 
 module CartoDB
   module Synchronization
@@ -37,6 +38,7 @@ module CartoDB
           import_cleanup(user.database_schema, result.table_name)
           cartodbfy(result.table_name)
           copy_privileges(user.database_schema, table_name, user.database_schema, result.table_name)
+          sanitize_table_columns(result.table_name, user.database_schema)
           overwrite(table_name, result)
           setup_table(table_name, geo_type)
           run_index_statements(index_statements)
@@ -438,6 +440,10 @@ module CartoDB
             end
           end
         }
+      end
+
+      def sanitize_table_columns(table_name, table_schema)
+        Carto::ColumnSanitizer.new(@database).sanitize(table_name, table_schema)
       end
 
       private
