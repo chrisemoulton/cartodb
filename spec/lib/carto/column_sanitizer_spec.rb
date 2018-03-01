@@ -43,7 +43,7 @@ describe Carto::ColumnSanitizer do
     vals = rows.map { |r|
       r.each_with_index.map { |v, i| {
           name: column_names[i],
-          val: types[i] == 'int' ? "#{v}" : "'#{v}'"
+          val: (types[i] == 'int' ? "#{v}" : "'#{v}'") + "::#{types[i]}"
       }}
     }
 
@@ -172,5 +172,43 @@ describe Carto::ColumnSanitizer do
     sanitized_column_names = column_names.map { |c| c.sanitize_column_name }.sort
     actual_column_names = get_data_column_names(@table_name)
     actual_column_names.should eq sanitized_column_names
+  end
+
+  it "numbers multiple columns of the same name" do
+    column_names = [
+      'i have spaces',
+      'i have spaces ',
+      'I_HAVE_CAPS',
+      'i-has**symbols**!!',
+      'i-has**symbols**!! ',
+      'i-has**symbols**!!  ',
+      'i_am_sanitary',
+      'i_am_sanitary '
+    ]
+    expected_column_names = [
+      'i have spaces'.sanitize_column_name,
+      'i have spaces '.sanitize_column_name + '_1',
+      'I_HAVE_CAPS'.sanitize_column_name,
+      'i-has**symbols**!!'.sanitize_column_name,
+      'i-has**symbols**!! '.sanitize_column_name + '_2',
+      'i-has**symbols**!!  '.sanitize_column_name + '_3',
+      'i_am_sanitary'.sanitize_column_name,
+      'i_am_sanitary '.sanitize_column_name + '_4'
+    ].sort
+    rows = [['foo'] * column_names.length]
+
+    # Ensure overlap of sanitized name for columns
+    column_names[0].sanitize_column_name.should eq column_names[1].sanitize_column_name
+    column_names[3].sanitize_column_name.should eq column_names[4].sanitize_column_name
+    column_names[3].sanitize_column_name.should eq column_names[5].sanitize_column_name
+    column_names[4].sanitize_column_name.should eq column_names[5].sanitize_column_name
+    column_names[6].sanitize_column_name.should eq column_names[7].sanitize_column_name
+
+    create_table_from_data(@table_name, @table_schema, column_names, rows)
+    sanitize(@table_name, @table_schema, nil)
+
+    actual_column_names = get_data_column_names(@table_name)
+    actual_column_names.should eq expected_column_names
+
   end
 end
