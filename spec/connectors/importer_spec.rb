@@ -667,7 +667,7 @@ describe CartoDB::Connector::Importer do
 
       # Create the actual remote table
       @existing_table = create_table(user_id: @common_data_user.id,
-                                     schema: Cartodb.config[:common_data]['remote_schema'],
+                                     schema: @common_data_user.database_schema,
                                      name: 'us_states')
       expect(@existing_table).not_to be_nil
 
@@ -764,7 +764,7 @@ describe CartoDB::Connector::Importer do
 
       # Create the actual remote table
       @existing_table = create_table(user_id: @common_data_user.id,
-                                     schema: Cartodb.config[:common_data]['remote_schema'],
+                                     schema: @common_data_user.database_schema,
                                      name: 'us_states')
       expect(@existing_table).not_to be_nil
 
@@ -859,11 +859,11 @@ describe CartoDB::Connector::Importer do
 
       # Create the actual remote table
       @existing_table = create_table(user_id: @common_data_user.id,
-                                     schema: Cartodb.config[:common_data]['remote_schema'],
+                                     schema: @common_data_user.database_schema,
                                      name: 'us_states_ehh')
       expect(@existing_table).not_to be_nil
       shared_table2 = create_table(user_id: @common_data_user.id,
-                                   schema: Cartodb.config[:common_data]['remote_schema'],
+                                   schema: @common_data_user.database_schema,
                                    name: 'major_airports')
       expect(shared_table2).not_to be_nil
 
