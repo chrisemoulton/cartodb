@@ -76,6 +76,8 @@ FactoryGirl.define do
     id { UUIDTools::UUID.timestamp_create.to_s }
     builder_enabled nil # Most tests still assume editor
 
+    database_name { "cartodb_test_user_#{id}_db" }
+
     before(:create) do
       CartoDB::UserModule::DBService.any_instance.stubs(:enable_remote_db_user).returns(true)
     end
