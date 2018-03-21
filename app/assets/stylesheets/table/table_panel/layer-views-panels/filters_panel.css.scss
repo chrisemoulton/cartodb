@@ -16,7 +16,7 @@
 @import "../../../old_common/common-sprite";
 @import "../../../old_common/vars";
 @import "../../../old_common/mixins";
-@import "../../../variables/colors";   
+@import "../../../variables/colors";
 @import "../../../variables/mixins";
 
 div.filters_panel {
@@ -465,6 +465,13 @@ div.filters_panel {
       padding: 0;
       width: 325px;
 
+      .li-focus-item {
+        border-top-color: red;
+        border-bottom: solid;
+        border-bottom-width: 1px;
+        border-bottom-color: red
+      }
+
       li {
         clear:both;
         overflow:hidden;
@@ -501,18 +508,17 @@ div.filters_panel {
           position: absolute;
           }
 
-        &.selected:after  { 
+        &.selected:after  {
           background-image: url("../images/beam_checkbox_check_black.svg");
           background-repeat: no-repeat;
           background-position: center;
           background-size: 7px 7px;
           background-color: $SelectionBlue2;
         }
-        
 
         .value {
           position:absolute;
-          right: 0; 
+          right: 0;
           color:$nGrey1;
         }
 
@@ -541,29 +547,68 @@ div.filters_panel {
           @include simple-transition(opacity, 150ms);
         }
       }
-    } // filter.selection
-
-    // Histogram filter
-    ul.filters .filter.histogram {
-      text-align:center;
-      .empty  { display:none; }
-
-      .loading   { display:block; }
-
-      .range-number { height: 35px; }
-      .range-number input { width: 45%; }
-      .range-number .subtext { display: none; }
-      .hist { margin: auto; position: relative; @include inline-block(); bottom: -3px; }
-      .background.bar { fill: #E5E5E5; }
-      .foreground.bar { fill: #4DC964; fill-opacity: .3; }
-      .axis path, .axis line { fill: none; stroke: #000; shape-rendering: crispEdges; }
-      .axis text { font: 10px sans-serif; }
-      .brush rect.extent { fill: $SelectionBlue3; fill-opacity: .2; }
-      .brush .resize path { fill: $nGrey10; stroke: $Black; }
     }
-  }
+  } // filter.selection
 
- select {
+  // Histogram filter
+  ul.filters .filter.histogram {
+    text-align:center;
+    .empty  { display:none; }
+
+    .loading   { display:block; }
+
+    .range-text {
+      padding: 1px 3px 1px 3px;
+      display: inline;
+    }
+
+    .range-text:hover {
+      padding: 0 2px 0 2px;
+      border: solid thin #666;
+      cursor: pointer;
+    }
+
+    .range-date-text {
+      padding: 1px 3px 1px 3px;
+      display: inline;
+    }
+
+    .range-date-text:hover {
+      padding: 0 2px 0 2px;
+      border: solid thin #666;
+      cursor: pointer;
+    }
+
+    .date-min, .date-max {
+      width: 80px;
+      cursor: text;
+    }
+
+    .has-focus {
+      border-color: red;
+    }
+
+    .ui-datepicker-div {
+      position: absolute;
+      z-index: 1;
+      top: 68px;
+      left: 30px;
+    }
+
+    .range-number { height: 35px; }
+    .range-number input { width: 45%; }
+    .range-number .subtext { display: none; }
+    .hist { margin: auto; position: relative; @include inline-block(); bottom: -3px; }
+    .background.bar { fill: #E5E5E5; }
+    .foreground.bar { fill: #4DC964; fill-opacity: .3; }
+    .axis path, .axis line { fill: none; stroke: #d8d8d8; shape-rendering: crispEdges; }
+    .axis text { font: 10px sans-serif; }
+    .brush rect.extent { fill: $SelectionBlue3; fill-opacity: .2; }
+    .brush .resize path { fill: $nGrey10; stroke: $Black; }
+  }
+}
+
+select {
   @include bb_button_style;
 
   &:focus {
@@ -571,5 +616,5 @@ div.filters_panel {
   }
   option:hover {
       background-color: yellow;
-}
+  }
 }
