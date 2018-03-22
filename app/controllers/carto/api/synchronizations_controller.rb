@@ -26,6 +26,22 @@ module Carto
         head(404)
       end
 
+      def search
+        # Look up all synchronizations that share the same sync filename
+        synchronizations = Carto::Synchronization.where('user_id = ? AND url ~* ?',
+                                                        current_user.id,
+                                                        "\\/#{params[:name]}\\.[\\w\\.]*$")
+        representation = synchronizations.map(&:to_hash)
+        response = {
+          synchronizations: representation,
+          total_entries: synchronizations.count
+        }
+        render_jsonp(response)
+      rescue => exception
+        CartoDB.notify_exception(exception)
+        head(404)
+      end
+
       def syncing?
         render_jsonp( { state: @synchronization.state } )
       rescue => exception
