@@ -390,6 +390,7 @@ CartoDB::Application.routes.draw do
     delete '(/user/:user_domain)(/u/:user_domain)/api/v1/maps/:map_id/layers/:id'   => 'layers#map_destroy', as: :api_v1_maps_layers_destroy
 
     get    '(/user/:user_domain)(/u/:user_domain)/api/v1/synchronizations'                => 'synchronizations#index',     as: :api_v1_synchronizations_index
+    get    '(/user/:user_domain)(/u/:user_domain)/api/v1/synchronizations/search/:name'   => 'synchronizations#search',    as: :api_v1_synchronizations_search
     get    '(/user/:user_domain)(/u/:user_domain)/api/v1/synchronizations/:id'            => 'synchronizations#show',     as: :api_v1_synchronizations_show
     # INFO: sync_now is public API
     get    '(/user/:user_domain)(/u/:user_domain)/api/v1/synchronizations/:id/sync_now'   => 'synchronizations#syncing?', as: :api_v1_synchronizations_syncing
