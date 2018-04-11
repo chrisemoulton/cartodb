@@ -365,7 +365,7 @@ module Carto
         samples_user_id = sample_maps_user.id if categoryType == 2 && sample_maps_user
         sample_type_counts = Object.new
 
-        is_common_data_user = user_id == common_data_user.id
+        is_common_data_user = common_data_user && user_id == common_data_user.id
         union_common_data = !is_common_data_user && (type == 'datasets')
 
         sharedEmptyDatasetCondition = is_common_data_user ? "" : "AND v.name <> '#{Cartodb.config[:shared_empty_dataset_name]}'"
