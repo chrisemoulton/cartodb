@@ -1,19 +1,28 @@
+//color buttons
+@mixin colorButton($bg_default, $bg_hover, $bg_pressed, $bg_disabled) {
+  color: $nGrey1;
+  background: $bg_default;
+
+  &:hover {
+   background: $bg_hover;
+
+  }
+
+  &.blp-button-pressed, &:active {    
+    background: $bg_pressed;
+  }
+
+  &.disabled {
+    color: $nGrey8;
+    background: $bg_disabled;
+  }
+}
+
+
 //Buttons 
 @mixin actionButton {
-  background-color: $nTeal7;
-  border: 1px solid $Black;
-  border-radius: 2px;
-  color: $nGrey1;
-  -webkit-user-select: none;
-  &:hover {
-    background-color: $nTeal6;
-    color: white;
-  }
-  &:active {
-    background-color: $nTeal8;
-    color: white;
-    } 
-  }
+    @include colorButton($nTeal7, $nTeal6, $nTeal8, #456d71);
+}
 
 //bloomberg theme 
 //button 
@@ -26,6 +35,7 @@
     color: $nGrey1; 
     cursor: default;
     font-size: 13px;
+    font-family: AvenirNext_demi;
     height: 19px;
     line-height: 17px;
     padding: 0px 6px;

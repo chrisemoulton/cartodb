@@ -17,8 +17,10 @@ module Carto
     # access by Symbols or Strings interchangeably.
     # @return Hash
     def get_params
-      # Make a copy of local params
-      configured_params(get_params_local)
+      # Make a deep copy of local params
+      configured_params(Hash[get_params_local.map { |k, vs|
+          [k + '', vs.map { |v| v + '' }]
+      }])
     end
 
     # Return values of a GET paramter identified
@@ -29,7 +31,7 @@ module Carto
     # @param param_name String
     # @return Array of String
     def get_param(param_name)
-      get_params_local[param_name]
+      get_params_local[param_name].map { |s| s + '' }
     end
 
     private

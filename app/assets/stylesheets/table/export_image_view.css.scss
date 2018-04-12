@@ -94,7 +94,7 @@
   }
   .CanvasExport .ExportHelper.ExportHelper--header,
   .CanvasExport .ExportHelper.ExportHelper--attribution {
-    opacity: 0.6;
+    opacity: 1.0;
   }
   .CanvasExport.ui-resizable > div.ui-resizable-handle,
   .ExportImageView-Header,
@@ -120,9 +120,8 @@
   top: 0;
   left: 0;
   width: 100%;
-  padding: 10px;
   box-sizing: border-box;
-  background: rgba(#000, 0.75);
+  background: rgba(#000, 0.0);
 }
 .ExportHelper.ExportHelper--attribution {
   @include transition(opacity, 500ms, ease-in-out);
@@ -152,11 +151,14 @@
   color: #FFF;
   font-size: 15px;
   font-weight: bold;
+  line-height: normal;
+  width: 100%;
 }
 .ExportHelperDescription {
   color: #FFF;
   font-size: 13px;
-  line-height: 19px;
+  line-height: normal;
+  width: 100%;
 }
 
 .Button--advancedExport {

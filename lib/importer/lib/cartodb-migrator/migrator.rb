@@ -1,4 +1,5 @@
 # coding: UTF-8
+require_relative '../../../../lib/carto/column_sanitizer'
 
 module CartoDB
   class Migrator
@@ -108,11 +109,6 @@ module CartoDB
 
     private
 
-    def get_valid_name(name)
-      ::Table.get_valid_table_name(name,
-        name_candidates: @db_connection.tables.map(&:to_s))
-    end
-
     def log(str)
       if @@debug
         puts str
@@ -120,36 +116,11 @@ module CartoDB
     end
 
     def sanitize(column_names)
-      columns_to_sanitize = column_names.select do |column_name|
-        column_name != column_name.sanitize_column_name
-      end
-
-      correct_columns = column_names - columns_to_sanitize
-
-      sanitization_map = Hash[
-        columns_to_sanitize.map { |column_name|
-          [column_name, column_name.sanitize_column_name]
-        }
-      ]
-
-      sanitization_count = 0
-
-      sanitization_map = sanitization_map.inject({}) { |memo, pair|
-        if memo.values.include?(pair.last) || correct_columns.include?(pair.last)
-          sanitization_count += 1 
-          memo.merge(pair.first => "#{pair.last}_#{sanitization_count}")
-        else
-          memo.merge(pair.first => pair.last)
-        end
-      }
-
-      sanitization_map.each do |unsanitized, sanitized|
-        @db_connection.run(%Q{
-          ALTER TABLE #{@current_name}
-          RENAME COLUMN "#{unsanitized}"
-          TO "#{sanitized}"
-        })
-      end
+      Carto::ColumnSanitizer.new(@db_connection).sanitize(
+        current_name,
+        @target_schema,
+        column_names
+      )
     end
   end
 end
